@@ -25,7 +25,7 @@ Please feel free to send any questions to brieuc dot lehmann at bdi dot ox dot a
 
 Simulated DNA sequences were generated using the [stdpopsim](https://stdpopsim.readthedocs.io/en/latest/) toolkit.
 
-The simulated DNA sequences were processed using the python tree sequence toolkit [tskit]([tskit](https://tskit.readthedocs.io/en/latest/)).
+The simulated DNA sequences were processed using the python tree sequence toolkit [tskit](https://tskit.readthedocs.io/en/latest/).
 
 ## UK Biobank
 
