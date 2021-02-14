@@ -1,5 +1,7 @@
 # Script to compute minor allele frequency for simulated tree sequence
 
+source("sim_utils.R")
+
 maf <- function(x, indSub = NULL, minor = TRUE){
 
   # Filter subjects
