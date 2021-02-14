@@ -82,7 +82,7 @@ IPW <- rep(1 / c(prop_wt, 1 - prop_wt, 0), n_train)
 
 for (pow in pow_range) {
   
-  weights <- n_train * (IPW^pow) / sum(IPW^pow) # normalised weights
+  weights <- sum(n_train) * (IPW^pow) / sum(IPW^pow) # normalised weights
 
   for (r in seq_len(n_sim)) {
     set.seed(r)
