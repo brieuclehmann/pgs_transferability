@@ -23,9 +23,9 @@ ids <- snpnet::readIDsFromPsam(paste0(gfile, '.psam'))
 # Note that first 130 IDs are 'missing'
 
 vars <- mutate(rename(data.table::fread(cmd=paste0('zstdcat ',
-                                                   paste0(gfile, '.pvar.zst'))), 'CHROM'='#CHROM'), VAR_ID=paste(ID, ALT, sep='_'))$VAR_ID
+                                                   paste0(gfile, '.pvar'))), 'CHROM'='#CHROM'), VAR_ID=paste(ID, ALT, sep='_'))$VAR_ID
 
-pvar <- pgenlibr::NewPvar(paste0(gfile, ".pvar.zst"))
+pvar <- pgenlibr::NewPvar(paste0(gfile, ".pvar"))
 
 pgen_black <- pgenlibr::NewPgen(paste0(gfile, ".pgen"), pvar = pvar,
                                 sample_subset = match(train_black_id, ids))
@@ -48,5 +48,6 @@ for (snp in split(vars, ceiling(seq_along(vars)/100))) {
     add_row(snp, maf_black, maf_white)
 }
 
+dir.create("output", showWarnings=FALSE)
 betafile <- "output/beta_all.tsv"
 write_tsv(beta_df, betafile)

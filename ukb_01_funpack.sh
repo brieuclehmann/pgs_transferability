@@ -11,7 +11,7 @@
 # 4080 - Systolic BP (auto)
 # 21001 - BMI
 
-INDIR=ukbb12788/ukbb_download_42801/
+INDIR=data/ukbb12788/ukbb_download_42801/
 
 funpack -ow -q \
   -v 48 -v 50 -v 93 -v 94 -v 4079 -v 4080 -v 21001 \
@@ -30,7 +30,7 @@ funpack -ow -q \
 # 30120 - lymphocyte
 # 30130 - monocyte
 # 30710 - C reactive protein
-INDIR=ukbb12788/ukbb_download_35062/
+INDIR=data/ukbb12788/ukbb_download_35062/
 
 funpack -ow -q \
   -v 30000 -v 30010 -v 30020 -v 30030 -v 30040 -v 30050 -v 30080 \
@@ -47,7 +47,7 @@ funpack -ow -q \
 # 22000 - Genotype batch
 # 22009 - Genetic PCs
 
-INDIR=ukbb12788/ukbb_download_37088/
+INDIR=data/ukbb12788/ukbb_download_37088/
 
 funpack -ow -q \
   -v 31 -v 34 -v 52 -v 21000 -v 22000 -v 22009 \
