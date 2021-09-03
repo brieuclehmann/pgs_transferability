@@ -4,8 +4,6 @@
 
 NSAMPLES=400000
 
-mkdir data
-
 stdpopsim HomSap $NSAMPLES $NSAMPLES $NSAMPLES \
   -d OutOfAfrica_3G09 \
   -c chr20 \

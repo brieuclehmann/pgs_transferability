@@ -1,7 +1,0 @@
-output
-data
-renv
-.snakemake
-.Rprofile
-temp
-cluster_logs
