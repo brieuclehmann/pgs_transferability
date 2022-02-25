@@ -200,42 +200,42 @@ p1 <- out_df %>%
 
 ### height
 
+height_df <- read_tsv("output/ukb/pheno~A30090/min_ancestry~AFR/scores.tsv")
+
 phe <- "height"
-min_maj_df <- out_df %>%
-  filter(parent_meaning %in% c("Black or Black British", "White") & 
-         pheno == phe & prop %in% c(0, 1) & pow == 0) %>%
+min_maj_df <- height_df %>%
+  filter(pop %in% c("AFR", "EUR")  & prop_min %in% c(0, 1)) %>%
   select(-pow) %>%
   full_join(tibble(pow = seq(0, 1, 0.2)), by = character())
 
 train_name_df <- ntrain_df %>% 
   filter(pheno == phe) %>%
-  inner_join(tibble(prop = c(1, 0.1, 0), 
-                    train_lab = c("prop_black = 100%",
-                                  "prop_black = 10%\nprop_white = 90%",
-                                  "prop_white = 100%")), by = "prop") %>%
+  inner_join(tibble(prop_min = c(1, 0.1, 0), 
+                    train_lab = c("prop_AFR = 100%",
+                                  "prop_AFR = 10%\nprop_EUR = 90%",
+                                  "prop_EUR = 100%")), by = "prop_min") %>%
   group_by(prop, train_lab) %>%
   summarise(ntrain = round(mean(ntrain))) %>%
   mutate(n_lab = paste0("n = ", ntrain),
          Training = paste(n_lab, train_lab, sep = "\n")) %>%
   select(prop, Training)
 
-p2 <- out_df %>%
-  filter(parent_meaning %in% c("Black or Black British", "White") & 
-           type == "aall" & pheno == phe & prop == 0.1) %>%
+p2 <- height_df %>%
+  filter(pop %in% c("AFR", "EUR") & prop_min == 0.1) %>%
   bind_rows(min_maj_df) %>%
-  group_by(pow, prop, pheno, parent_meaning) %>%
+  group_by(pow, prop_min, pheno, pop) %>%
   summarise(mean = mean(partial), 
             max = max(partial),
             min = min(partial), .groups = "drop") %>%
-  left_join(train_name_df, by = "prop") %>%
-  mutate(Training = fct_relevel(Training, train_name_df$Training)) %>%
-  mutate(Training = paste0(Training, "\n")) %>%
+#  left_join(train_name_df, by = "prop") %>%
+#  mutate(Training = fct_relevel(Training, train_name_df$Training)) %>%
+#  mutate(Training = paste0(Training, "\n")) %>%
   ggplot(aes(pow, mean)) + 
-  geom_line(aes(color = Training, linetype = Training)) +
-  facet_wrap(c("parent_meaning"), nrow = 1) +
+  geom_line(aes(color = factor(prop_min), linetype = factor(prop_min))) +
+  facet_wrap(c("pop"), nrow = 1) +
   scale_x_continuous(breaks = seq(0, 1, 0.2), minor_breaks = seq(0, 1, 0.2)) +
-  scale_linetype_manual(values = c(2, 2, 1)) +
-  scale_color_manual(values = gg_color_hue(4)[c(4,1,3)]) +
+#  scale_linetype_manual(values = c(2, 2, 1)) +
+#  scale_color_manual(values = gg_color_hue(4)[c(4,1,3)]) +
   xlab(expression(gamma)) +
   ylab(expression(r^2)) +
   ggtitle(phe)
