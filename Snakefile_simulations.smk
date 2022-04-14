@@ -1,7 +1,5 @@
 """
-Workflow to run simulations for PGS transferability manuscript
-inputs: Snakefile_simulations.smk (dummy input)
-output: data/ooa.trees
+Workflow to run simulations for 'Optimal strategies for learning multi-ancestry polygenic scores vary across traits'
 """
 
 # snakemake --snakefile Snakefile_simulations.smk --profile profile/ --cluster-config cluster.yaml --use-conda -j1 test
@@ -54,14 +52,14 @@ rule process_treesequence:
     input: "data/ooa.trees" 
     output: "data/ooa.vcf.gz"
     conda: "envs/stdpopsim.yml"
-    script: "sim_process_ts.py"
+    script: "scripts/simulations/process_ts.py"
 
 rule process_treesequence_sep:
     input: "data/ooa.trees"
     output: "data/ooa_YRI.vcf.gz"
     conda: "envs/stdpopsim.yml"
     resources: queue="long.qc"
-    script: "sim_process_ts.py"
+    script: "scripts/simulations/process_ts_sep.py"
 
 #---#
 
@@ -104,20 +102,26 @@ rule process_pgen:
 # --- #
 rule simul_wrapper:
     input:
-        expand("output/simulations/{params}.csv", params=paramspace.instance_patterns)
+        expand(
+            "output/simulations/{params}.csv",
+            params=paramspace.instance_patterns
+        )
 
 rule simul_cv_wrapper:
     input:
-        expand("output/simulations/cv/{params}.csv", params=paramspace_cv.instance_patterns)
+        expand(
+            "output/simulations/cv/{params}.csv",
+            params=paramspace_cv.instance_patterns
+        )
 
 rule run_simul:
     input: "data/ooa.pgen"
     output: f"output/simulations/{paramspace.wildcard_pattern}.csv"
     conda: "envs/snpnet.yml"
-    script: "scripts/sim_04a_run.R"
+    script: "scripts/simulations/04a_run.R"
 
 rule run_simul_cv:
     input: "data/ooa.pgen"
     output: f"output/simulations/cv/{paramspace.wildcard_pattern}.csv"
     conda: "envs/snpnet.yml"
-    script: "scripts/sim_04b_run_cv.R"
+    script: "scripts/simulations/04b_run_cv.R"

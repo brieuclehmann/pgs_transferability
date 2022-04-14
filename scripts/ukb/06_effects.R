@@ -14,6 +14,7 @@ set.seed(1)
 
 beta_file <- snakemake@output[[1]]
 dir.create(dirname(beta_file), recursive = TRUE, showWarnings = FALSE)
+variants <- snakemake@wildcards[["v"]]
 pheno <- snakemake@wildcards[["pheno"]]
 prop_min <- snakemake@wildcards[["prop_min"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]
@@ -21,9 +22,11 @@ f <- as.integer(snakemake@wildcards[["fold"]])
 pow <- as.double(snakemake@wildcards[["pow"]])
 
 pfile <- "data/all_vars.tsv"
+
 ### Combine chromosome predictions ###
 outdir <- file.path(
   "output", "ukb",
+  paste0("v~", variants),
   paste0("pheno~", pheno),
   paste0("min_ancestry~", min_ancestry),
   paste0("prop_min~", prop_min),
@@ -58,7 +61,8 @@ beta_df <- foreach(chrom = chroms, .combine = rbind) %do% {
 
   gfile <- file.path(
     "data", "genotypes",
-    paste0("ancestry~", min_ancestry),
+    paste0("v~", variants),
+    paste0("min_ancestry~", min_ancestry),
     paste0("chrom~", chrom)
   )
   outfile <- file.path(outdir, paste0("chrom~", chrom, ".RDS"))
@@ -67,14 +71,12 @@ beta_df <- foreach(chrom = chroms, .combine = rbind) %do% {
   lambda_ind <- which.max(mod$metric.val)
   covars <- mod$configs$covariates
 
-  beta_fit <- mod$beta[[lambda_ind]][-(1:length(covars))]
+  beta_fit <- mod$beta[[lambda_ind]][- (seq_len(covars))]
   beta_nonzero <- beta_fit[beta_fit != 0]
-  
 
   tibble(varname = names(beta_nonzero),
          beta = beta_nonzero,
          chrom = chrom)
-
 }
 
 beta_df <- beta_df %>%

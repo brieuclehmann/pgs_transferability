@@ -10,6 +10,7 @@ set.seed(1) # for reproducibility
 maj_ancestry <- "EUR"
 nfolds <- 5
 
+out_file <- snakemake@output[[1]]
 pheno <- as.character(snakemake@wildcards[["pheno"]])
 prop_min <- as.double(snakemake@wildcards[["prop_min"]])
 min_ancestry <- as.character(snakemake@wildcards[["min_ancestry"]])
@@ -31,15 +32,6 @@ if (length(unique_sex) == 1) {
     pheno_df <- pheno_df %>%
         filter(sex == unique_sex)
 }
-
-out_dir <- file.path(
-    "data", "train_ids",
-    paste0("pheno~", pheno),
-    paste0("min_ancestry~", min_ancestry),
-    paste0("prop_min~", format(prop_min, nsmall = 1))
-)
-out_file <- file.path(out_dir, paste0("fold~", f, ".txt"))
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 fold_df <- pheno_df %>%
     group_by(pop) %>%
@@ -79,4 +71,7 @@ if (prop_min == 0) {
     train_id <- match_df$eid[idx]
 }
 
+# Save output
+out_dir <- dirname(out_file)
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 write(rep(train_id, each = 2), out_file, ncol = 2)

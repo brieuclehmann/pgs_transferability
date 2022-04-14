@@ -13,6 +13,7 @@ scores_file <- snakemake@output[[1]]
 dir.create(dirname(scores_file), recursive = TRUE, showWarnings = FALSE)
 this_pheno <- pheno <- snakemake@wildcards[["pheno"]]
 this_min_ancestry <- min_ancestry <- snakemake@wildcards[["min_ancestry"]]
+variants <- snakemake@wildcards[["v"]]
 pfile <- "data/all_vars.tsv"
 nfolds <- 5
 
@@ -25,6 +26,7 @@ compute_r2 <- function(y, pred) {
 
 outdir <- file.path(
     "output", "ukb",
+    paste0("v~", variants),
     paste0("pheno~", pheno),
     paste0("min_ancestry~", min_ancestry)
 )
@@ -43,21 +45,24 @@ pheno_df <- read_tsv("data/all_vars.tsv") %>%
             fold = sample(cut(seq_len(n()), breaks = nfolds, labels = FALSE))
         )
 
-pred_files <- list.files(
-    outdir,
-    pattern = "pred_genotyped.tsv", 
-    recursive = TRUE
-)
+match_dirs <- paste0(outdir, "/fold~", 1:5)
+pred_files <- do.call(c, lapply(
+    match_dirs,
+    function(x) {
+        list.files(
+            x,
+            pattern = "pred.tsv$",
+            recursive = TRUE,
+            full.names = TRUE
+        )
+    }
+))
 
 covar_formula <- y ~ age + sex *
     (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10)
 full_formula <- y ~ age + pred + sex *
     (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10)
 
-fit_lm_on_bootstrap <- function(split) {
-    lm(y ~ age + sex *
-        (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), split)
-}
 
 if (pheno %in% c("NC1226", "NC1111", "I48", "K57", "N81")) {
     fam <- "binomial"
@@ -68,11 +73,11 @@ if (pheno %in% c("NC1226", "NC1111", "I48", "K57", "N81")) {
 out_df <- tibble(pop = character())
 boot_df <- tibble(pop = character())
 for (pred_file in pred_files) {
-    prop_min <- gsub(".*prop_min~(.*?)/.*", "\\1", pred_file)
+    type <- gsub(".*type~(.*?)/.*", "\\1", pred_file)
     f <- gsub(".*fold~(.*?)/.*", "\\1", pred_file)
-    pow <- gsub(".*pow~(.*?)/.*", "\\1", pred_file)
+    frac <- gsub(".*frac~(.*?)/.*", "\\1", pred_file)
 
-    pred_df <- read_tsv(file.path(outdir, pred_file)) %>%
+    pred_df <- read_tsv(pred_file) %>%
         inner_join(pheno_df, by = "ID") %>%
         filter(fold == f)
 
@@ -102,7 +107,7 @@ for (pred_file in pred_files) {
                 VE = 1 - (mean((resid_pgs - resid_covar)^2) / var(resid_covar)),
                 cor = cor(pred, y)
             ) %>%
-            mutate(prop_min = prop_min, pow = pow, fold = f) %>%
+            mutate(type = type, frac = frac, fold = f) %>%
             bind_rows(out_df)
    
 }

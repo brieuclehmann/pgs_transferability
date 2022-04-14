@@ -25,6 +25,7 @@ pfile <- "data/all_vars.tsv"
 ### Combine chromosome predictions ###
 outdir <- file.path(
   "output", "ukb",
+  paste0("v~", variants),
   paste0("pheno~", pheno),
   paste0("min_ancestry~", min_ancestry),
   paste0("prop_min~", prop_min),
@@ -67,7 +68,8 @@ for (maf_pop in c("min", "maj")) {
         out_df <- foreach(this_chrom = chroms, .combine = rbind) %do% {
             gfile <- file.path(
                 "data", "genotypes",
-                paste0("ancestry~", min_ancestry),
+                paste0("v~", variants),
+                paste0("min_ancestry~", min_ancestry),
                 paste0("chrom~", this_chrom)
             )
 
@@ -144,10 +146,12 @@ out_df <- pred_df %>%
         r2 = compute_r2(y, pred),
         covar_r2 = 1 - sum(resid_covar^2) / sum((y - mean(y))^2),
         covar = summary(glm(y ~ age + sex *
-            (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), family = fam))$deviance,
+            (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10),
+            family = fam))$deviance,
         full_r2 = 1 - sum(resid_full^2) / sum((y - mean(y))^2),
         full = summary(glm(y ~ age + pred + sex *
-            (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), family = fam))$deviance,
+            (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10),
+            family = fam))$deviance,
         inc_r2 = full_r2 - covar_r2,
         partial_r2 = 1 - (sum(resid_full^2) / sum(resid_covar^2)),
         pseudo_r2 = 1 - exp((full - covar) / n()),

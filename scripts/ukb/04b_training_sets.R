@@ -41,16 +41,6 @@ if (length(unique_sex) == 1) {
         filter(sex == unique_sex)
 }
 
-#out_dir <- file.path(
-#    "data", "train_ids",
-#    paste0("pheno~", pheno),
-#    paste0("min_ancestry~", min_ancestry),
-#    paste0(frac_type, "~", format(this_frac, nsmall = 1))
-#)
-#out_file <- file.path(out_dir, paste0("fold~", f, ".txt"))
-out_dir <- dirname(out_file)
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-
 fold_df <- pheno_df %>%
     group_by(pop) %>%
     mutate(
@@ -90,5 +80,8 @@ frac_ind <- round(this_frac * nfracs)
 frac_df <- match_df %>%
     filter(eid %in% match_df$eid[idx] & frac <= frac_ind)
 
-train_id <- frac_df$eid
-write(rep(train_id, each = 2), out_file, ncol = 2)
+
+# Save output
+out_dir <- dirname(out_file)
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+write(rep(frac_df$eid, each = 2), out_file, ncol = 2)

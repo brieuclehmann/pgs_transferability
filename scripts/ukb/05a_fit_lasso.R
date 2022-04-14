@@ -14,42 +14,22 @@ outdir <- dirname(outfile)
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 gfile <- tools::file_path_sans_ext(snakemake@input[[1]])
 kfile <- snakemake@input[[2]]
+results.dir <- tools::file_path_sans_ext(sub("output/ukb", "temp", outfile))
+dir.create(results.dir, showWarnings = FALSE, recursive = TRUE)
 
 pheno <- snakemake@wildcards[["pheno"]]
 prop_min <- snakemake@wildcards[["prop_min"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]
-chrom <- snakemake@wildcards[["chrom"]]
-f <- as.integer(snakemake@wildcards[["fold"]])
 pow <- as.double(snakemake@wildcards[["pow"]])
 ncores <- as.integer(Sys.getenv("NSLOTS"))
 
-# kfile  <- file.path("data", "train_ids",
-#                     paste0("pheno~", pheno),
-#                     paste0("min_ancestry~", min_ancestry),
-#                     paste0("prop_min~", prop_min),
-#                     paste0("fold~", f, ".txt"))
 pfile  <- "data/all_vars.tsv"
-# gfile  <- file.path("data", "genotypes",
-#                     paste0("ancestry~", min_ancestry),
-#                     paste0("chrom~", chrom))
 covars <- c("sex", "age", paste0("PC", 1:10), paste0("PC", 1:10, "_sex"))
 
 keep_ids <- read.table(kfile)[, 1]
 ids <- readIDsFromPsam(paste0(gfile, ".psam"))
 id_df <- data.frame(ID = ids, stringsAsFactors = F) %>%
   mutate(sort_order = 1:n())
-
-results.dir <- file.path(
-  "temp",
-  paste0("pheno~", pheno),
-  paste0("min_ancestry~", min_ancestry),
-  paste0("prop_min~", prop_min),
-  paste0("fold~", f),
-  paste0("pow~", format(pow, nsmall = 1)),
-  paste0("chrom~", chrom)
-)
-results.dir <- file.path("temp", substr(outfile, 1, nchar(outfile) - 4))
-dir.create(results.dir, showWarnings = FALSE, recursive = TRUE)
 
 glmnetPlus_flag <- TRUE
 if (prop_min != "0.0") glmnetPlus_flag <- FALSE
@@ -113,17 +93,6 @@ rm(phe)
 gc()
 
 ### Fit lasso ---
-
-# outdir <- file.path(
-#   "output", "ukb",
-#   paste0("pheno~", pheno),
-#   paste0("min_ancestry~", min_ancestry),
-#   paste0("prop_min~", prop_min),
-#   paste0("fold~", f),
-#   paste0("pow~", format(pow, nsmall = 1))
-# )
-# dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
-#outfile <- file.path(outdir, paste0("chrom~", chrom, ".RDS"))
 
 if (!file.exists(outfile)) {
   intermediate_files <- list.files(file.path(results.dir, "results"),

@@ -63,6 +63,14 @@ p1 <- ggplot(filter(plot_df, `Test set` == "AFR"), aes(pow, mean)) +
  #               inherit.aes = FALSE) +
   facet_wrap(c("trait"), nrow = 3, scales = "free_y") +
   scale_x_continuous(breaks = seq(0, 1, 0.2), minor_breaks = seq(0, 1, 0.2)) +
+  scale_colour_discrete(name = "Polygenic score",
+                        labels = c(expression("PGS"["EUR"]),
+                                  expression("PGS"["dual"]), 
+                                  expression("PGS"["AFR"]))) +
+  scale_fill_discrete(name = "Polygenic score",
+                      labels = c(expression("PGS"["EUR"]),
+                                 expression("PGS"["dual"]), 
+                                 expression("PGS"["AFR"]))) +
   xlab(expression(gamma)) +
   ylab(expression(r^2)) +
   theme(legend.position = "bottom")

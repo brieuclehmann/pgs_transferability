@@ -89,20 +89,24 @@ plot_maf <- function(this_maf_pop, this_min_ancestry, this_pop, this_trait) {
                       breaks = unique(out_df$maf_grp)) +
     labs(fill = maf_label) +
     ylab(expression(r^2))  +
+    xlab(expression("PGS"["dual"])) +
 #    xlab("Training set") +
     scale_x_continuous(breaks = c(-0.25, 0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.25), 
                        minor_breaks = c(-0.25, 0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.25),
-                       labels = c("EUR-only", 
-                                c(0, 0.2, 0.4, "\n\u03B3\nMulti-ancestry\n", 0.6, 0.8, 1), 
-                                "AFR-only")) +
+                       labels = c(expression("PGS"["EUR"]), 
+                                c(0, 0.2, 0.4, expression(atop("", "\u03B3")), 0.6, 0.8, 1), 
+                                expression("PGS"["AFR"]))) +
     theme(legend.position="bottom",
           axis.title.y = element_text(angle = 0, vjust=0.5),
-          axis.title.x = element_blank(),
+        #  axis.title.x = element_blank(),
+          axis.title.x = element_text(size = 9, colour = "gray20", 
+                                      margin = margin(t = 5, b = 10)),
           plot.title = element_text(hjust = 0.5),
           panel.grid.major.x = element_line(color = c(rep("gray92", 4), 
                                                       NA, 
                                                       rep("gray92", 4))))
 }
+
 
 p1 <- plot_maf("min", "AFR", "AFR", "MCV")
 p2 <- plot_maf("maj", "AFR", "AFR", "MCV")
@@ -145,7 +149,8 @@ p_top <- (p1 + q1) / (p2 + q2) +
 p_bottom <- (p3 + q3) / (p4 + q4) / guide_area() + 
   plot_layout(guides = 'collect', heights = c(2, 2, 1)) +
   plot_annotation(title = "EUR test set", 
-                  theme = theme(plot.title = element_text(hjust = 0.5)))
+                  theme = theme(plot.title = element_text(hjust = 0.5),
+                                legend.spacing.y = unit(-0.2, "cm")))
 
 out_file <- paste0("plots/fig6upper.pdf")
 ggsave(out_file, p_top, device = cairo_pdf, width = 8, height = 4)
