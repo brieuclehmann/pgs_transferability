@@ -96,72 +96,79 @@ pred_df <- tibble(
     pred = double()
 )
 
-n_train <- round(c(n_afr, n_eur, 0))
-IPW <- rep(1 / c(prop_wt, 1 - prop_wt, 0), n_train)
+if (pow == Inf) {
+    n_train <- round(c(n_afr, 0, 0)) # n_eur <- 0
+    weights <- rep(1, n_afr)
+    pow <- "inf"
+} else {
+    n_train <- round(c(n_afr, n_eur, 0))
+    IPW <- rep(1 / c(prop_wt, 1 - prop_wt, 0), n_train)
 
-    weights <- sum(n_train) * (IPW^pow) / sum(IPW^pow) # normalised weights
+    # normalised weights
+    weights <- sum(n_train) * (IPW^pow) / sum(IPW^pow)
+}
 
-        set.seed(r)
+set.seed(r)
 
-        ind_train <- mapply(
-            function(x, y) sort(sample(x, y)),
-            ind_sub, n_train
-        )
-        ind_val <- mapply(
-            function(x, y) sort(sample(x, y)),
-            ind_train, round(n_train * 0.2)
-        )
-        ind_test <- mapply(
-            function(x, y) sort(sample(setdiff(x, y), n_test)),
-            ind_sub, ind_train,
-            SIMPLIFY = FALSE
-        )
+ind_train <- mapply(
+    function(x, y) sort(sample(x, y)),
+    ind_sub, n_train
+)
+ind_val <- mapply(
+    function(x, y) sort(sample(x, y)),
+    ind_train, round(n_train * 0.2)
+)
+ind_test <- mapply(
+    function(x, y) sort(sample(setdiff(x, y), n_test)),
+    ind_sub, ind_train,
+    SIMPLIFY = FALSE
+)
 
-        pheno_df$split <- NA_character_
-        pheno_df$split[unlist(ind_train)] <- "train"
-        pheno_df$split[unlist(ind_val)] <- "val"
+pheno_df$split <- NA_character_
+pheno_df$split[unlist(ind_train)] <- "train"
+pheno_df$split[unlist(ind_val)] <- "val"
 
-        pfile <- tempfile()
-        readr::write_tsv(filter(pheno_df, split %in% c("train", "val")), pfile)
-        all_weights <- double(nrow(pheno_df))
-        all_weights[unlist(ind_train)] <- weights
+pfile <- tempfile()
+readr::write_tsv(filter(pheno_df, split %in% c("train", "val")), pfile)
+all_weights <- double(nrow(pheno_df))
+all_weights[unlist(ind_train)] <- weights
 
-        fit <- snpnet::snpnet(
-            gfile, pfile, "pheno",
-            covariates = "YRI",
-            weights = weights,
-            split.col = "split",
-            mem = mem
-        )
+fit <- snpnet::snpnet(
+    gfile, pfile, "pheno",
+    covariates = "YRI",
+    weights = weights,
+    split.col = "split",
+    mem = mem
+)
 
-        pheno_df$split[unlist(ind_test)] <- "test"
-        pfile <- tempfile()
-        readr::write_tsv(filter(pheno_df, split == "test"), pfile)
+pheno_df$split[unlist(ind_test)] <- "test"
+pfile <- tempfile()
+readr::write_tsv(filter(pheno_df, split == "test"), pfile)
 
-        lambda_ind <- which.max(fit$metric.val)
-        pred <- snpnet::predict_snpnet(
-            fit,
-            new_genotype_file = gfile, new_phenotype_file = pfile,
-            phenotype = "pheno", split_col = "split", split_name = "test",
-            covariate_names = "YRI", idx = lambda_ind
-        )
+lambda_ind <- which.max(fit$metric.val)
+pred <- snpnet::predict_snpnet(
+    fit,
+    new_genotype_file = gfile, new_phenotype_file = pfile,
+    phenotype = "pheno", split_col = "split", split_name = "test",
+    covariate_names = "YRI", idx = lambda_ind
+)
 
-        this_pred_df <- pheno_df %>%
-            filter(split == "test") %>%
-            mutate(
-                IID_FID = rownames(pred$prediction[[1]]),
-                pred = pred$prediction[[1]][, 1],
-                check = paste(IID, FID, sep = "_") == IID_FID
-            ) %>%
-            pivot_longer(
-                cols = c(YRI, CEU, CHB), names_to = "pop", values_to = "keep"
-            ) %>%
-            filter(keep == 1) %>%
-            select(IID, pop, pheno, pred, check)
+this_pred_df <- pheno_df %>%
+    filter(split == "test") %>%
+    mutate(
+        IID_FID = rownames(pred$prediction[[1]]),
+        pred = pred$prediction[[1]][, 1],
+        check = paste(IID, FID, sep = "_") == IID_FID
+    ) %>%
+    pivot_longer(
+        cols = c(YRI, CEU, CHB), names_to = "pop", values_to = "keep"
+    ) %>%
+    filter(keep == 1) %>%
+    select(IID, pop, pheno, pred, check)
 
-        if (!all(this_pred_df$check)) stop("Error combining predictions")
+if (!all(this_pred_df$check)) stop("Error combining predictions")
 
-        pred_df <- bind_rows(pred_df, select(this_pred_df, -check))
+pred_df <- bind_rows(pred_df, select(this_pred_df, -check))
 
 # SAVE OUTPUT ------------------------------------------------------------------
 out_dir <- file.path(

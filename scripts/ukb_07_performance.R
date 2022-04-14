@@ -48,7 +48,13 @@ covar_formula <- y ~ age + sex *
 full_formula <- y ~ age + pred + sex *
     (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10)
 
+fit_lm_on_bootstrap <- function(split) {
+    lm(y ~ age + sex *
+        (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), split)
+}
+
 out_df <- tibble(pop = character())
+boot_df <- tibble(pop = character())
 for (pred_file in pred_files) {
     prop_min <- gsub(".*prop_min~(.*?)/.*", "\\1", pred_file)
     f <- gsub(".*fold~(.*?)/.*", "\\1", pred_file)
@@ -56,8 +62,51 @@ for (pred_file in pred_files) {
 
     pred_df <- read_tsv(file.path(outdir, pred_file)) %>%
         inner_join(pheno_df, by = "ID") %>%
-        filter(fold != f)
+        filter(fold == f)
 
+    boot_df <- pred_df %>%
+        group_by(pop) %>%
+        group_modify(
+            ~ bootstraps(., times = 100, apparent = TRUE) %>%
+                mutate(
+                    model = map(splits, ~ lm(covar_formula, data = .)),
+                    model2 = map(splits, ~ lm(full_formula, data = .)),
+                    full_glance = map(model2, glance),
+                    covar_glance = map(model, glance)
+                ) %>%
+                unnest(covar_glance) %>%
+                select(id, covar = r.squared, full_glance) %>%
+                unnest(full_glance) %>%
+                select(id, covar, full = r.squared)
+        ) %>%
+        mutate(
+            bootstrap = id != "Apparent",
+            partial = full - covar) %>%
+        group_by(pop, bootstrap) %>%
+            summarise(
+                mean = mean(partial),
+                upper = quantile(partial, 0.95),
+                lower = quantile(partial, 0.05)
+            ) %>%
+        mutate(prop_min = prop_min, pow = pow, fold = f) %>%
+        bind_rows(boot_df)
+
+    out_df <- pred_df %>%
+        group_by(pop) %>%
+        mutate(
+            resid_full = residuals(lm(y ~ age + pred + sex *
+                (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+            resid_covar = residuals(lm(y ~ age + sex *
+                (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+            diff_resid = resid_covar^2 - resid_full^2 / var(y)
+        ) %>%
+        summarise(
+            partial = mean(diff_resid) / var(y),
+            var_resid = var(diff_resid / var(y)),
+            partial_upper = quantile(diff_resid, 0.95) / var(y),
+            partial_lower = quantile(diff_resid, 0.05) / var(y)
+            )
+    
    out_df <- pred_df %>%
        group_by(pop) %>%
        summarise(
@@ -79,3 +128,8 @@ out_df$pheno <- pheno
 out_df$min_ancestry <- min_ancestry
 scores_file <- file.path(outdir, "scores.tsv")
 write_tsv(out_df, scores_file)
+
+boot_df$pheno <- pheno
+boot_df$min_ancestry <- min_ancestry
+boot_scores_file <- file.path(outdir, "boot_scores.tsv")
+write_tsv(boot_df, boot_scores_file)

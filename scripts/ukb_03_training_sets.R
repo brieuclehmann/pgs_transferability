@@ -26,6 +26,12 @@ pheno_df <- read_tsv("data/all_vars.tsv") %>%
     select(eid, y, all_of(covars)) %>%
     filter(!is.na(y))
 
+unique_sex <- unique(pheno_df$sex[pheno_df$y])
+if (length(unique_sex) == 1) {
+    pheno_df <- pheno_df %>%
+        filter(sex == unique_sex)
+}
+
 out_dir <- file.path(
     "data", "train_ids",
     paste0("pheno~", pheno),

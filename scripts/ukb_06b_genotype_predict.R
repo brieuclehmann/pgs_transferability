@@ -12,6 +12,8 @@ library(readr)
 library(dplyr)
 set.seed(1)
 
+pred_file <- snakemake@output[[1]]
+dir.create(dirname(pred_file), recursive = TRUE, showWarnings = FALSE)
 pheno <- snakemake@wildcards[["pheno"]]
 prop_min <- snakemake@wildcards[["prop_min"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]
@@ -36,9 +38,9 @@ out_df <- foreach(chrom = chroms, .combine = rbind) %do% {
   gfile <- file.path(
     "data", "genotypes",
     paste0("ancestry~", min_ancestry),
-    paste0("chrom~", chrom)
+    paste0("chrom~", chrom, "_genotyped")
   )
-  outfile <- file.path(outdir, paste0("chrom~", chrom, ".RDS"))
+  outfile <- file.path(outdir, paste0("chrom~", chrom, "_genotyped.RDS"))
 
   mod <- readRDS(outfile)
   lambda_ind <- which.max(mod$metric.val)
@@ -64,5 +66,5 @@ pred_df <- out_df %>%
   summarise(pred = sum(pred))
 
 ### Save output
-pred_file <- file.path(outdir, "pred.tsv")
+#pred_file <- file.path(outdir, "pred.tsv")
 write_tsv(pred_df, pred_file)

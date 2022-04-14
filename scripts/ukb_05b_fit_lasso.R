@@ -16,11 +16,11 @@ gfile <- tools::file_path_sans_ext(snakemake@input[[1]])
 kfile <- snakemake@input[[2]]
 
 pheno <- snakemake@wildcards[["pheno"]]
-prop_min <- snakemake@wildcards[["prop_min"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]
 chrom <- snakemake@wildcards[["chrom"]]
+frac <- snakemake@wildcards[["frac"]]
+type <- snakemake@wildcards[["type"]]
 f <- as.integer(snakemake@wildcards[["fold"]])
-pow <- as.double(snakemake@wildcards[["pow"]])
 ncores <- as.integer(Sys.getenv("NSLOTS"))
 
 # kfile  <- file.path("data", "train_ids",
@@ -39,20 +39,13 @@ ids <- readIDsFromPsam(paste0(gfile, ".psam"))
 id_df <- data.frame(ID = ids, stringsAsFactors = F) %>%
   mutate(sort_order = 1:n())
 
-results.dir <- file.path(
-  "temp",
-  paste0("pheno~", pheno),
-  paste0("min_ancestry~", min_ancestry),
-  paste0("prop_min~", prop_min),
-  paste0("fold~", f),
-  paste0("pow~", format(pow, nsmall = 1)),
-  paste0("chrom~", chrom)
-)
+
 results.dir <- file.path("temp", substr(outfile, 1, nchar(outfile) - 4))
 dir.create(results.dir, showWarnings = FALSE, recursive = TRUE)
 
 glmnetPlus_flag <- TRUE
-if (prop_min != "0.0") glmnetPlus_flag <- FALSE
+if (type == "maj" & frac == "0.0") glmnetPlus_flag <- FALSE
+
 configs <- list(results.dir = results.dir,
                 stopping.lag = 2,
                 keep = kfile,
@@ -82,27 +75,10 @@ train_ids <- phe %>%
   sample_n(round(0.8 * n())) %>%
   pull(FID)
 
-weights <- phe %>%
-  group_by(pop) %>%
-  transmute(
-    ID = paste(FID, FID, sep = "_"),
-    weight = ntrain / n()
-  ) %>%
-  left_join(id_df, by = "ID") %>%
-    ungroup() %>%
-    mutate(weight = ntrain * (weight^pow / sum(weight^pow))) %>%
-    arrange(sort_order) %>%
-    pull(weight)
-
-if (prop_min %in% c("0.0", "1.0") && !all.equal(weights, rep(1, ntrain))) {
-  stop("Check weights")
-}
-
 new_pfile <- file.path(results.dir, "pheno.tsv")
 phe %>%
   dplyr::mutate(
-    split = if_else(FID %in% train_ids, "train", "val"),
-    weights = weights
+    split = if_else(FID %in% train_ids, "train", "val")
   ) %>%
   data.table::fwrite(new_pfile, sep = "\t")
 
@@ -138,7 +114,6 @@ if (!file.exists(outfile)) {
     mod <- snpnet(gfile,
                   new_pfile,
                   pheno,
-                  weights = weights,
                   covariates = covars,
                   split.col = "split",
                   configs = configs)

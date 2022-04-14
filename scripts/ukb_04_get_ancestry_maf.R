@@ -25,9 +25,10 @@ this_df <- pan_ukbb_df %>%
       maf_maj = pmin(af_EUR, 1 - af_EUR),
       maf_min = pmin(maf, 1 - maf)
     ) %>%
-  filter(maf_min >= 0.01 | maf_maj >= 0.01)
+  filter(maf_min >= 0.01 | maf_maj >= 0.01) %>%
+    mutate(varid2 = paste0(chrom, ":", pos, "_", ref, "_", alt))
 
-out_rsids <- this_df$varid
+out_rsids <- this_df$varid2
 out_dir <- file.path("data", "snp_ids", paste0("ancestry~", ancestry))
 out_file <- file.path(out_dir, paste0("chrom~", this_chrom, ".txt"))
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)

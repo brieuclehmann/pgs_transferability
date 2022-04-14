@@ -10,11 +10,17 @@ compute_r2 <- function(y, pred) {
 }
 
 extract_results <- function(beta_cor, prop_afr, pow, iter, rep) {
+
+    if (is.infinite(pow)) {
+        pow_txt <- "inf"
+    } else {
+        pow_txt <- format(pow, nsmall = 1)
+    }
     out_dir <- file.path(
         "output", "simulations",
         paste0("beta_cor~", format(beta_cor, nsmall = 1)),
         paste0("prop_afr~", format(prop_afr, nsmall = 1)),
-        paste0("pow~", format(pow, nsmall = 1)),
+        paste0("pow~", pow_txt),
         paste0("iter~", format(iter, nsmall = 1))
     )
 
