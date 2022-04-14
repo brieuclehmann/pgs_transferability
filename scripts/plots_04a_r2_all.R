@@ -56,6 +56,14 @@ p1 <- plot_df %>%
   geom_ribbon(aes(ymin = min, ymax = max, fill = `Training set`), alpha = 0.2) +
   facet_grid(trait ~ `Test set`, scales = "free_y") +
   scale_x_continuous(breaks = seq(0, 1, 0.2), minor_breaks = seq(0, 1, 0.2)) +
+  scale_colour_discrete(name = "Polygenic score",
+                        labels = c(expression("PGS"["EUR"]),
+                                   expression("PGS"["dual"]), 
+                                   expression("PGS"["min"]))) +
+  scale_fill_discrete(name = "Polygenic score",
+                      labels = c(expression("PGS"["EUR"]),
+                                 expression("PGS"["dual"]), 
+                                 expression("PGS"["min"]))) +
   xlab(expression(gamma)) +
   ylab(expression(r^2)) +
   theme(legend.position = "bottom")

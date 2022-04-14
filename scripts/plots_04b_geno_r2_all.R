@@ -58,6 +58,14 @@ p1 <- plot_df %>%
   scale_x_continuous(breaks = seq(0, 1, 0.2), minor_breaks = seq(0, 1, 0.2)) +
   xlab(expression(gamma)) +
   ylab(expression(r^2)) +
+  scale_colour_discrete(name = "Polygenic score",
+                        labels = c(expression("PGS"["EUR"]),
+                                   expression("PGS"["dual"]), 
+                                   expression("PGS"["min"]))) +
+  scale_fill_discrete(name = "Polygenic score",
+                      labels = c(expression("PGS"["EUR"]),
+                                 expression("PGS"["dual"]), 
+                                 expression("PGS"["min"]))) +
   theme(legend.position = "bottom")
 
 dir.create("plots", showWarnings = FALSE)
