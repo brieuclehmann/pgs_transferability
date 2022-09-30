@@ -32,14 +32,21 @@ id_df <- data.frame(ID = ids, stringsAsFactors = F) %>%
   mutate(sort_order = 1:n())
 
 glmnetPlus_flag <- TRUE
-if (prop_min != "0.0") glmnetPlus_flag <- FALSE
+if (!(prop_min %in% c("0.0", "-1.0")) & pheno != "NC1111") {
+  glmnetPlus_flag <- FALSE
+}
+glmnet.thresh <- 1e-07
+if (pheno == "NC1111" & pow >= 1.2) {
+  glmnet.thresh <- 1e-06
+}
+
 configs <- list(results.dir = results.dir,
                 stopping.lag = 2,
                 keep = kfile,
                 nCores = ncores,
                 mem = 12e3 * ncores,
                 use.glmnetPlus = glmnetPlus_flag,
-                #glmnet.thresh = 1e-6,
+                glmnet.thresh = glmnet.thresh,
                 verbose = TRUE,
                 save = TRUE)
 
@@ -103,6 +110,7 @@ if (!file.exists(outfile)) {
     configs$prev_iter <- max(prev_iters)
   }
 
+  start_time <- proc.time()
   system.time(
     mod <- snpnet(gfile,
                   new_pfile,
@@ -112,6 +120,9 @@ if (!file.exists(outfile)) {
                   split.col = "split",
                   configs = configs)
   )
+  diff_time <- proc.time() - start_time
+  mod$time <- diff_time
+  
   saveRDS(mod, outfile)
   snpnet:::cleanUpIntermediateFiles(mod$configs)
 }

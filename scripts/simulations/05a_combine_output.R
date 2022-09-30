@@ -9,7 +9,7 @@ compute_r2 <- function(y, pred) {
     1 - (ss_res / ss_tot)
 }
 
-extract_results <- function(beta_cor, prop_afr, pow, iter, rep) {
+extract_results <- function(n_causal, h2, beta_cor, prop_afr, pow, iter, rep) {
 
     if (is.infinite(pow)) {
         pow_txt <- "inf"
@@ -18,6 +18,8 @@ extract_results <- function(beta_cor, prop_afr, pow, iter, rep) {
     }
     out_dir <- file.path(
         "output", "simulations",
+        paste0("n_causal~", format(n_causal, nsmall = 1)),
+        paste0("h2~", format(h2, nsmall = 1)),
         paste0("beta_cor~", format(beta_cor, nsmall = 1)),
         paste0("prop_afr~", format(prop_afr, nsmall = 1)),
         paste0("pow~", pow_txt),

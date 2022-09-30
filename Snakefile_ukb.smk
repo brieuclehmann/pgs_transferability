@@ -17,6 +17,8 @@ onsuccess: print("finished successfully") # insert more useful code here, e.g. s
 onerror:
     print("finished with errors")
 
+# snakemake --snakefile Snakefile_ukb.smk --profile profile/ --cluster-config cluster_config.yaml --use-conda -j1 test
+
 ##########################
 ### Set up Paramspaces ###
 ##########################
@@ -26,9 +28,10 @@ n_fold = 5
 min_ancestries = ["AFR", "CSA", "AMR", "EAS", "MID"]
 chromosomes = [i + 1 for i in range(22)] + ["X"]
 pow_range = [0, 0.2, 0.4, 0.6, 0.8, 1.0] # gamma
+pow_ext_range = [1.2, 1.4]
 
 # Phenotype UKB codes
-pheno_all = ["A50", "A30040", "NC1111", "N81"]
+pheno_all = ["A50", "A30040", "N81", "NC1111"]
 pheno_afr = [
     "A21001", "A30100", "A30090", "A30300", "A30130",
     "A30070", "A30210", "A30120", "NC1226", "I48", "K57"
@@ -36,25 +39,46 @@ pheno_afr = [
 
 # For setting up file names
 pow_prop_multi = [(0.1, fold + 1, pow) for pow in pow_range for fold in range(n_fold)]
+pow_prop_multi_ext = [(0.1, fold + 1, pow) for pow in pow_ext_range for fold in range(n_fold)]
 pow_prop_min = [(prop, fold + 1, 0) for fold in range(n_fold) for prop in [1]]
 pow_prop_maj = [(prop, fold + 1, 0) for fold in range(n_fold) for prop in [0]]
+pow_prop_dual = [(-1, fold + 1, pow) for pow in pow_range for fold in range(n_fold)]
 pow_prop_all = pow_prop_min + pow_prop_multi + pow_prop_maj
+
 pow_prop_all_txt = [
     "prop_min~" + f'{prop:.1f}' + "/fold~" + str(fold) + "/pow~" + f'{power:.1f}' 
     for (prop, fold, power) 
     in pow_prop_all
 ]
+
 pow_prop_sub_txt = [
     "prop_min~" + f'{prop:.1f}' + "/fold~" + str(fold) + "/pow~" + f'{power:.1f}'
     for (prop, fold, power)
     in pow_prop_multi + pow_prop_min
 ]
 
+pow_prop_dual_txt = [
+    "prop_min~" + f'{prop:.1f}' + "/fold~" + str(fold) + "/pow~" + f'{power:.1f}' 
+    for (prop, fold, power) 
+    in pow_prop_dual
+]
+
+
+pow_prop_ext = pow_prop_all + pow_prop_multi_ext
+pow_prop_ext_txt = [
+    "prop_min~" + f'{prop:.1f}' + "/fold~" + str(fold) + "/pow~" + f'{power:.1f}'
+    for (prop, fold, power)
+    in pow_prop_multi_ext
+]
+
 
 pow_prop_df = pd.DataFrame(pow_prop_all, columns = ['prop_min', 'fold', 'pow'])
+pow_prop_dual_df = pd.DataFrame(pow_prop_dual, columns = ['prop_min', 'fold', 'pow'])
+pow_prop_ext_df = pd.DataFrame(pow_prop_ext, columns = ['prop_min', 'fold', 'pow'])
 chrom_df = pd.DataFrame({"chrom":chromosomes})
 ancestry_df = pd.DataFrame({"min_ancestry":min_ancestries})
 variant_df = pd.DataFrame({"v":["tagged", "imputed"]})
+variant_df = pd.DataFrame({"v":["imputed"]})
 pheno_df = pd.DataFrame({"pheno":pheno_all})
 
 
@@ -66,11 +90,17 @@ afr_df = pd.DataFrame({
 })
 afr_df = afr_df.merge(pow_prop_df, how = 'cross')
 
+dual_df = pd.DataFrame({
+    "v": "imputed",
+    "pheno":pheno_all,
+    "min_ancestry":"AFR"
+})
+dual_df = dual_df.merge(pow_prop_dual_df, how = 'cross')
 
 # Remaining analyses #
 all_df = variant_df.merge(pheno_df, how = 'cross')
 all_df = all_df.merge(ancestry_df, how = 'cross')
-all_df = all_df.merge(pow_prop_df, how = 'cross')
+all_df = all_df.merge(pow_prop_ext_df, how = 'cross')
 all_df = all_df.loc[ # Insufficient FGP cases in these ancestry groups
     ~(all_df['min_ancestry'].isin(["EAS", "MID", "AMR"]) & 
     (all_df['pheno'] == "N81"))
@@ -78,8 +108,17 @@ all_df = all_df.loc[ # Insufficient FGP cases in these ancestry groups
 all_df = all_df.loc[ # Don't retrain EUR-only for other minority ancestries
     ~ ((all_df['min_ancestry'] != "AFR") & (all_df['prop_min'] == 0.0))
 ]
+all_df = all_df.loc[ # Remove due to convergence issues for NC1111 (asthma)
+    ~ (
+    (all_df['min_ancestry'] == "MID") & 
+    (all_df['pow'].isin([1.2, 1.4])) &
+    (all_df['pheno'] == "NC1111")
+    )
+]
 
-full_df = pd.concat([afr_df, all_df])
+
+
+full_df = pd.concat([afr_df, dual_df, all_df])
 full_df = full_df.merge(chrom_df, how = 'cross')
 
 full_pred_df = full_df.copy()
@@ -111,7 +150,7 @@ ps_pred.score_pattern = ps_score.wildcard_pattern
 rule ukb_funpack:
     output: "data/all_ukb_vars.tsv"
     conda: "envs/funpack.yml" 
-    shell: "funpack -ow -q -vi 0 -ex data/w12788_20210809.csv "
+    shell: "funpack -ow -q -vi 0 -ex data/w12788_20220222.csv "
            "-v 50 -v 93 -v 4080 -v 21001 -v 5983 "
            "-v 30020 -v 30040 -v 30070 -v 30090 -v 30100 "
            "-v 30110 -v 30120 -v 30130 -v 30140 -v 30210 -v 30300 "
@@ -160,8 +199,21 @@ rule convert_pgen:
            "--new-id-max-allele-len 700"
            " --out data/genotypes/v~{wildcards.v}/min_ancestry~{wildcards.min_ancestry}/chrom~{wildcards.chrom}"
 
+rule pgen_wrapper:
+    input:
+        expand(
+            "data/genotypes/{params}.pgen",
+            params = ps_geno.instance_patterns
+        )
 
 #-#-#-#-# Estimate PGS #-#-#-#-#
+
+rule test_train_wrapper:
+    input:
+        expand(
+            "data/train_ids/{params}.txt",
+            params = ps_train.instance_patterns
+        )
 
 rule test_train_split:
     input: "data/all_vars.tsv"
@@ -177,8 +229,8 @@ rule fit_lasso:
     conda: "envs/snpnet.yml"
     wildcard_constraints: chrom="\w{1,2}"
     params:
-        ncores = lambda wildcards: 6 if wildcards["prop_min"] == '0.0' else 2
-    script: "scripts/ukb/05_fit_lasso.R"
+        ncores = lambda wildcards: 16 if wildcards["prop_min"] in ['0.0', '-1.0'] else 2
+    script: "scripts/ukb/05a_fit_lasso.R"
 
 
 #-#-#-#-# Process output #-#-#-#-#
@@ -210,10 +262,20 @@ rule predict_traits:
 
 
 def eval_input(wildcards): # Only predict for EUR-only when min_ancestry == "AFR"
+    if wildcards.min_ancestry == "AFR":
+        pow_prop = pow_prop_all_txt
+        if wildcards.pheno in pheno_all:
+            pow_prop = pow_prop + pow_prop_dual_txt + pow_prop_ext_txt
+    else:
+        pow_prop = pow_prop_sub_txt
+        if wildcards.pheno in pheno_all:
+            pow_prop = pow_prop + pow_prop_ext_txt
+        if (wildcards.pheno == "NC1111") and (wildcards.min_ancestry == "MID"):
+            pow_prop = pow_prop_sub_txt
     return expand(
         "output/ukb/{pattern}/{pow_prop}/pred.tsv", 
         pattern = ps_score.wildcard_pattern, 
-        pow_prop = pow_prop_all_txt if wildcards.min_ancestry == "AFR" else pow_prop_sub_txt
+        pow_prop = pow_prop
     )
 
 rule evaluate_pgs:

@@ -60,6 +60,7 @@ if (pheno %in% c("NC1226", "NC1111", "I48", "K57", "N81")) {
 }
 
 out_df <- tibble(pop = character())
+out_sex_df <- tibble(pop = character(), sex = double())
 for (pred_file in pred_files) {
     prop_min <- gsub(".*prop_min~(.*?)/.*", "\\1", pred_file)
     f <- gsub(".*fold~(.*?)/.*", "\\1", pred_file)
@@ -101,9 +102,47 @@ for (pred_file in pred_files) {
             ) %>%
             mutate(prop_min = prop_min, pow = pow, fold = f) %>%
             bind_rows(out_df)
+
+        out_sex_df <- pred_df %>%
+            group_by(pop, sex) %>%
+            mutate(
+                resid_covar = residuals(lm(y ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+                fit_covar = fitted.values(lm(y ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+                resid_pgs = residuals(lm(pred ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+                resid_full = residuals(lm(y ~ age + pred + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10)))
+            ) %>%
+            summarise(
+                r2 = compute_r2(y, pred),
+                covar_r2 = 1 - sum(resid_covar^2) / sum((y - mean(y))^2),
+                covar = summary(glm(y ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), family = fam))$deviance,
+                full_r2 = 1 - sum(resid_full^2) / sum((y - mean(y))^2),
+                full = summary(glm(y ~ age + pred + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), family = fam))$deviance,
+                inc_r2 = full_r2 - covar_r2,
+                partial_r2 = 1 - (sum(resid_full^2) / sum(resid_covar^2)),
+                pseudo_r2 = 1 - exp((full - covar) / n()),
+                partial_cor = cor(resid_covar, resid_pgs),
+                bias = mean(pred) - mean(y),
+                VE = 1 - (mean((resid_pgs - resid_covar)^2) / var(resid_covar)),
+                cor = cor(pred, y),
+                implied_var = var(pred),
+                implied_var_cov = var(fit_covar)
+            ) %>%
+            mutate(prop_min = prop_min, pow = pow, fold = f) %>%
+            bind_rows(out_sex_df)
 }
 
 out_df$pheno <- pheno
 out_df$min_ancestry <- min_ancestry
 #scores_file <- file.path(outdir, "scores.tsv")
 write_tsv(out_df, scores_file)
+
+out_sex_df$pheno <- pheno
+out_sex_df$min_ancestry <- min_ancestry
+scores_sex_file <- paste0(tools::file_path_sans_ext(scores_file), "_sex.tsv")
+write_tsv(out_sex_df, scores_sex_file)

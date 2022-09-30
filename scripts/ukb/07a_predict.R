@@ -14,6 +14,7 @@ set.seed(1)
 
 pred_file <- snakemake@output[[1]]
 dir.create(dirname(pred_file), recursive = TRUE, showWarnings = FALSE)
+variants <- snakemake@wildcards[["v"]]
 pheno <- snakemake@wildcards[["pheno"]]
 prop_min <- snakemake@wildcards[["prop_min"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]

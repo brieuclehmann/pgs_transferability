@@ -14,6 +14,7 @@ set.seed(1)
 
 decomp_file <- snakemake@output[[1]]
 dir.create(dirname(decomp_file), recursive = TRUE, showWarnings = FALSE)
+variants <- snakemake@wildcards[["v"]]
 pheno <- snakemake@wildcards[["pheno"]]
 prop_min <- snakemake@wildcards[["prop_min"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]
@@ -56,10 +57,10 @@ pred_df <- tibble()
 for (maf_pop in c("min", "maj")) {
 
     if (maf_pop == "min") {
-        beta_df <- read_tsv(beta_file) %>%
+        beta_df <- read_tsv(beta_file, col_types="ccddd") %>%
             mutate(maf_grp = cut(maf_min, maf_cuts))
     } else {
-        beta_df <- read_tsv(beta_file) %>%
+        beta_df <- read_tsv(beta_file, col_types="ccddd") %>%
             mutate(maf_grp = cut(maf_maj, maf_cuts))
     }
 

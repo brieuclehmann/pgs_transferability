@@ -12,7 +12,7 @@ library(tidyr)
 library(mvtnorm)
 library(pROC)
 library(tidyselect)
-source("scripts/sim_utils.R")
+source("scripts/simulations/utils.R")
 
 tskit <- reticulate::import("tskit")
 ts <- tskit$load("data/ooa.trees")
@@ -28,17 +28,17 @@ maf_df$SNP <- 1:nrow(maf_df)
 # SPECIFY SIMULATION HYPERPARAMETERS ------------------------------------------
 maf_threshold <- 1e-2
 n_test <- 2e4L
-n_causal <- 100
 prop_wt <- 0.1
-h2 <- 0.3
 n_sim <- 10
 n_eur <- 18000
 
 iter <- as.double(snakemake@wildcards[["iter"]])
 beta_cor <- as.double(snakemake@wildcards[["beta_cor"]])
 prop_afr <- as.double(snakemake@wildcards[["prop_afr"]])
-pow <- as.double(snakemake@wildcards[["pow"]]) 
+pow <- as.double(snakemake@wildcards[["pow"]])
 r <- as.double(snakemake@wildcards[["rep"]])
+h2 <- as.double(snakemake@wildcards[["h2"]])
+n_causal <- as.double(snakemake@wildcards[["n_causal"]])
 
 n_cores <- as.integer(Sys.getenv("NSLOTS"))
 mem <- 12e3 * n_cores
@@ -133,13 +133,17 @@ readr::write_tsv(filter(pheno_df, split %in% c("train", "val")), pfile)
 all_weights <- double(nrow(pheno_df))
 all_weights[unlist(ind_train)] <- weights
 
-fit <- snpnet::snpnet(
-    gfile, pfile, "pheno",
-    covariates = "YRI",
-    weights = weights,
-    split.col = "split",
-    mem = mem
-)
+start_time <- proc.time()
+  system.time(
+      fit <- snpnet::snpnet(
+          gfile, pfile, "pheno",
+          covariates = "YRI",
+          weights = weights,
+          split.col = "split",
+          mem = mem
+      )
+  )
+diff_time <- proc.time() - start_time
 
 pheno_df$split[unlist(ind_test)] <- "test"
 pfile <- tempfile()
@@ -173,6 +177,8 @@ pred_df <- bind_rows(pred_df, select(this_pred_df, -check))
 # SAVE OUTPUT ------------------------------------------------------------------
 out_dir <- file.path(
     "output", "simulations",
+    paste0("n_causal~", format(n_causal, nsmall = 1)),
+    paste0("h2~", format(h2, nsmall = 1)),
     paste0("beta_cor~", format(beta_cor, nsmall = 1)),
     paste0("prop_afr~", format(prop_afr, nsmall = 1)),
     paste0("pow~", format(pow, nsmall = 1)),
@@ -182,3 +188,6 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 pred_file <- file.path(out_dir, paste0("rep~", format(r, nsmall = 1), ".csv"))
 readr::write_csv(pred_df, pred_file)
+
+time_file <- file.path(out_dir, paste0("time~", format(r, nsmall = 1), ".txt"))
+write(diff_time, time_file)

@@ -209,6 +209,8 @@ ind_test <- mapply(
 # SAVE OUTPUT ------------------------------------------------------------------
 out_dir <- file.path(
     "output", "simulations", "cv",
+    paste0("n_causal~", n_causal),
+    paste0("h2~", format(h2, nsmall = 1)),
     paste0("beta_cor~", format(beta_cor, nsmall = 1)),
     paste0("prop_afr~", format(prop_afr, nsmall = 1)),
     paste0("pow~", format(pow, nsmall = 1)),

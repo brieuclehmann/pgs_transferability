@@ -2,7 +2,7 @@
 Workflow to run simulations for 'Optimal strategies for learning multi-ancestry polygenic scores vary across traits'
 """
 
-# snakemake --snakefile Snakefile_simulations.smk --profile profile/ --cluster-config cluster.yaml --use-conda -j1 test
+# snakemake --snakefile Snakefile_simulations.smk --profile profile/ --cluster-config cluster_config.yaml --use-conda -j1 test
 
 from snakemake.utils import min_version
 from snakemake.utils import Paramspace
@@ -125,3 +125,9 @@ rule run_simul_cv:
     output: f"output/simulations/cv/{paramspace.wildcard_pattern}.csv"
     conda: "envs/snpnet.yml"
     script: "scripts/simulations/04b_run_cv.R"
+
+rule calculate_h2:
+    input: "data/sim_params.csv"
+    output: "output/simulations/h2.csv"
+    conda: "envs/snpnet.yml"
+    script: "scripts/simulations/04c_calculate_h2.R"

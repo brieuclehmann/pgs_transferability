@@ -71,7 +71,7 @@ beta_df <- foreach(chrom = chroms, .combine = rbind) %do% {
   lambda_ind <- which.max(mod$metric.val)
   covars <- mod$configs$covariates
 
-  beta_fit <- mod$beta[[lambda_ind]][- (seq_len(covars))]
+  beta_fit <- mod$beta[[lambda_ind]][- (seq_along(covars))]
   beta_nonzero <- beta_fit[beta_fit != 0]
 
   tibble(varname = names(beta_nonzero),

@@ -52,6 +52,12 @@ if (prop_min == 0) {
         filter(pop == min_ancestry & fold != f) %>%
         pull(eid)
 
+} else if (prop_min == -1) {
+
+    train_id <- fold_df %>%
+        filter(pop %in% c(min_ancestry, maj_ancestry) & fold != f) %>%
+        pull(eid)
+
 } else {
     # Train-test split
     train_ratio <- round((1 - prop_min) / prop_min)

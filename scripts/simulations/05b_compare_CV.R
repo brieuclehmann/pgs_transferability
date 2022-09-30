@@ -24,6 +24,8 @@ for (prefix in c("cv", "")) {
 
         pred_dir <- file.path(
             out_dir,
+            paste0("n_causal~", format(n_causal, nsmall = 1)),
+            paste0("h2~", format(h2, nsmall = 1)),
             paste0("beta_cor~", format(beta_cor, nsmall = 1)),
             paste0("prop_afr~", format(prop_afr, nsmall = 1)),
             paste0("pow~", format(pow, nsmall = 1)),
@@ -53,7 +55,7 @@ cv_file <- file.path("output", "simulations", "cv", "combined.csv")
 cv_df <- readr::read_csv(cv_file) %>%
     mutate(lambda = "cv")
 
-val_file <- file.path("output", "simulations", "combined.csv") 
+val_file <- file.path("output", "simulations", "combined.csv")
 val_df <- readr::read_csv(val_file) %>%
     mutate(lambda = "val")
 
