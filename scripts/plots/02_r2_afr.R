@@ -2,7 +2,7 @@
 ## Load basic files ##
 ######################
 
-basic_files <- paste0("output/ukb/pheno~", pheno_codes, "/min_ancestry~AFR/scores.tsv")
+basic_files <- paste0("output/ukb/v~imputed/pheno~", pheno_codes, "/min_ancestry~AFR/scores.tsv")
 basic_df <- map_dfr(basic_files, read_tsv, show_col_types = FALSE) %>%
   mutate(trait = phenos[pheno],
          `Training set` = case_when(prop_min == 0 ~ "European ancestry only",
@@ -35,7 +35,7 @@ trait_order <- phenos[pheno_order]
 ##########################
 
 plot_df <- basic_df %>%
-  filter(pop %in% c("AFR", "EUR") & prop_min == 0.1) %>%
+  filter(pop %in% c("AFR", "EUR") & prop_min == 0.1 & pow <= 1.0) %>%
   bind_rows(min_maj_df) %>%
   left_join(eur_df, by = c("pheno", "fold")) %>%
   mutate(r2 = if_else(trait %in% quant_phenos, partial_r2, pseudo_r2)) %>%

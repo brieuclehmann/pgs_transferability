@@ -5,9 +5,11 @@
 full_score_df <- tibble()
 for (code in full_pheno_codes) {
   for (anc in all_ancestries) {
-    this_file <- paste0("output/ukb/pheno~", code, "/min_ancestry~", anc, "/scores.tsv")
+    this_file <- paste0("output/ukb/v~imputed/pheno~", code, "/min_ancestry~", anc, "/scores.tsv")
     if (file.exists(this_file)) {
-      this_df <- read_tsv(this_file, show_col_types = FALSE)
+      this_df <- read_tsv(this_file, show_col_types = FALSE) %>%
+        mutate(prop_min = as.double(prop_min),
+               pow = as.double(pow))
       full_score_df <- bind_rows(full_score_df, this_df)
     }
   }
