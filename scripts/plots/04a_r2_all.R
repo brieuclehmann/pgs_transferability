@@ -28,7 +28,7 @@ full_score_df <- full_score_df %>%
 full_min_maj_df <- full_score_df %>%
   filter(prop_min %in% c(0, 1)) %>%
   select(-pow) %>%
-  full_join(tibble(pow = seq(0, 1, 0.2)), by = character()) %>%
+  full_join(tibble(pow = seq(0, 1.4, 0.2)), by = character()) %>%
   filter(!(trait == "FGP" & pop %in% c("AMR", "EAS", "MID")))
 
 ##########################
@@ -57,7 +57,7 @@ p1 <- plot_df %>%
   #               position = position_dodge(width = 0.1)) +
   geom_ribbon(aes(ymin = min, ymax = max, fill = `Training set`), alpha = 0.2) +
   facet_grid(trait ~ `Test set`, scales = "free_y") +
-  scale_x_continuous(breaks = seq(0, 1, 0.2), minor_breaks = seq(0, 1, 0.2)) +
+  scale_x_continuous(breaks = seq(0, 1.4, 0.2), minor_breaks = seq(0, 1.4, 0.2)) +
   scale_colour_discrete(name = "Polygenic score",
                         labels = c(expression("PGS"["EUR"]),
                                    expression("PGS"["dual"]), 

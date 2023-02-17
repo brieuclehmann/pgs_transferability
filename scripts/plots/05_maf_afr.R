@@ -1,15 +1,15 @@
 #######################
 ## Load output files ##
 #######################
-decomp_all <- "output/ukb/decomp.csv"
+decomp_all <- "output/ukb/v~imputed/decomp.csv"
 
 if (file.exists(decomp_all)) {
-  decomp_df <- read_csv("output/ukb/decomp.csv", show_col_types = FALSE) %>%
+  decomp_df <- read_csv("output/ukb/v~imputed/decomp.csv", show_col_types = FALSE) %>%
     mutate(`Training set` = case_when(prop_min == 0 ~ "European ancestry only",
                                       prop_min == 0.1 ~ "Multi-ancestry",
                                       TRUE ~ "Minority ancestry only"))
 } else {
-  decomp_files <- list.files("output/ukb", "*decomp.tsv", 
+  decomp_files <- list.files("output/ukb/v~imputed", "*decomp.tsv", 
                              full.names = TRUE, 
                              recursive = TRUE)
   
@@ -38,13 +38,15 @@ if (file.exists(decomp_all)) {
   write_tsv(decomp_df, decomp_all)
 }
 
-basic_files <- paste0("output/ukb/pheno~", pheno_codes, "/min_ancestry~AFR/scores.tsv")
+basic_files <- paste0("output/ukb/v~imputed/pheno~", pheno_codes, "/min_ancestry~AFR/scores.tsv")
 basic_df <- map_dfr(basic_files, read_tsv, show_col_types = FALSE) %>%
+  filter(prop_min != -1) %>%
   mutate(trait = phenos[pheno],
          pow_aux = if_else(prop_min == 0, -0.25, as.double(pow)),
          `Training set` = case_when(prop_min == 0 ~ "European ancestry only",
                                     prop_min == 0.1 ~ "Multi-ancestry",
-                                    TRUE ~ "African ancestry only")) %>%
+                                    prop_min == 1 ~ "African ancestry only",
+                                    TRUE ~ "Other")) %>%
   mutate(pow_aux = if_else(prop_min == 1, 1.25, pow_aux),
          `Training set` = factor(`Training set`, 
                                  levels = c("European ancestry only",
@@ -60,6 +62,8 @@ basic_df <- map_dfr(basic_files, read_tsv, show_col_types = FALSE) %>%
 
 out_df <- decomp_df %>%
   filter(pop %in% c("AFR", "EUR")) %>%
+  filter(prop_min != "-1.0") %>%
+  filter(!pow_aux %in% c(1.2, 1.4)) %>%
   mutate(r2 = if_else(trait %in% quant_phenos, partial_r2, pseudo_r2),
          trait = factor(trait, trait_order)) %>%
   group_by(trait, min_ancestry, pop, pow_aux, maf_pop, maf_grp) %>%
