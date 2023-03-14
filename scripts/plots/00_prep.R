@@ -29,7 +29,7 @@ pheno_codes <- c(quant_pheno_codes, binary_pheno_codes)
 phenos <- c(quant_phenos, binary_phenos)
 names(phenos) <- pheno_codes
 
-full_ind <- c(1, 4, 12, 15)
+full_ind <- c(1, 4, 8, 12)
 full_phenos <- phenos[full_ind]
 full_pheno_codes <- pheno_codes[full_ind]
 

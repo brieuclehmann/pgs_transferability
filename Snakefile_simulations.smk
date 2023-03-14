@@ -2,8 +2,6 @@
 Workflow to run simulations for 'Optimal strategies for learning multi-ancestry polygenic scores vary across traits'
 """
 
-# snakemake --snakefile Snakefile_simulations.smk --profile profile/ --cluster-config cluster_config.yaml --use-conda -j1 test
-
 from snakemake.utils import min_version
 from snakemake.utils import Paramspace
 import pandas as pd
@@ -11,9 +9,9 @@ min_version("5.26")
 
 paramspace = Paramspace(pd.read_csv("data/sim_params.csv"))
 NSAMPLES = 400000
+NCORES = 4 # number of cores available
 
 #---#
-# Just include necessary genetic map as part of the repo
 rule download_genetic_maps:
     input: "Snakefile_simulations.smk"
     output:
@@ -51,7 +49,7 @@ rule convert_treesequence:
     output: "data/ooa.pgen"
     conda: "envs/plink2.yml"
     params:
-        cores = 4
+        cores = NCORES
     shell: "plink2 --vcf {input} --threads {params.cores} --memory 40000 "
            "--make-pgen vzs psam-cols=fid --set-all-var-ids @:# --out data/ooa"
 
@@ -61,7 +59,7 @@ rule process_pgen:
     output: "data/ooa.pgen"
     conda: "envs/plink2.yml"
     params:
-        cores = 4
+        cores = NCORES
     shell: "plink2 --pfile data/ooa --threads {params.cores} --memory 40000 "
            "--set-all-var-ids @:#"
 

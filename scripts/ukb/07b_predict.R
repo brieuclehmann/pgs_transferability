@@ -2,9 +2,6 @@
 
 ### Set up parameters ---
 
-.libPaths("/gpfs2/well/holmes/users/rxa753/pgs_transferability/renv/library/R-3.6/x86_64-conda_cos6-linux-gnu")
-print(.libPaths())
-
 library(snpnet)
 library(purrr)
 library(foreach)

@@ -1,7 +1,7 @@
 #######################
 ## Load output files ##
 #######################
-decomp_all <- "output/ukb/decomp.tsv"
+decomp_all <- "output/ukb/decomp_new.tsv"
 
 if (file.exists(decomp_all)) {
   decomp_df <- read_tsv(decomp_all, show_col_types = FALSE) %>%
@@ -41,7 +41,7 @@ if (file.exists(decomp_all)) {
 full_score_df <- tibble()
 for (code in full_pheno_codes) {
   for (anc in all_ancestries) {
-    this_file <- paste0("output/ukb/pheno~", code, "/min_ancestry~", anc, "/scores.tsv")
+    this_file <- paste0("output/ukb/v~imputed/pheno~", code, "/min_ancestry~", anc, "/scores.tsv")
     if (file.exists(this_file)) {
       this_df <- read_tsv(this_file, show_col_types = FALSE)
       full_score_df <- bind_rows(full_score_df, this_df)
@@ -49,6 +49,7 @@ for (code in full_pheno_codes) {
   }
 }
 full_score_df <- full_score_df %>%
+  filter(prop_min != -1) %>%
   mutate(min_ancestry = if_else(prop_min == 0 & pop != "EUR", pop, min_ancestry),
          trait = phenos[pheno],
          pow_aux = if_else(prop_min == 0, -0.25, as.double(pow)),
@@ -77,8 +78,17 @@ full_score_df <- full_score_df %>%
 ## Preprocess output ##
 #######################
 
+decomp_eur_df <- decomp_df %>%
+  filter(pow_aux == -0.25) %>%
+  select(-min_ancestry) %>%
+  full_join(tibble(min_ancestry = c("AMR", "EAS", "CSA", "MID")),
+            by = character())
+
 out_df <- decomp_df %>%
+  bind_rows(decomp_eur_df) %>%
   filter(pop == "EUR" | pop == min_ancestry) %>%
+  filter(prop_min != "-1.0") %>%
+  filter(!pow_aux %in% c(1.2, 1.4)) %>%
   mutate(r2 = if_else(trait %in% quant_phenos, partial_r2, pseudo_r2),
          trait = factor(trait, trait_order)) %>%
   group_by(trait, min_ancestry, pop, pow_aux, maf_pop, maf_grp) %>%
@@ -101,23 +111,19 @@ plot_maf <- function(this_maf_pop, this_min_ancestry, this_pop, this_trait) {
     ggplot(aes(pow_aux, mean)) + 
     geom_bar(aes(fill = maf_grp), stat = "identity") +
     geom_point(aes(pow_aux, base_r2)) +
-    #  geom_point(aes(y = partial)) +
-    #    facet_wrap("trait", scales = "free_y", nrow = 3) +
     scale_fill_brewer(direction = 1, palette = colours,
                       limits=c("a", "b", unique(out_df$maf_grp)), 
                       breaks = unique(out_df$maf_grp)) +
     labs(fill = maf_label) +
     ylab(expression(r^2))  +
     xlab(expression("PGS"["dual"])) +
-    #    xlab("Training set") +
     scale_x_continuous(breaks = c(-0.25, 0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.25), 
                        minor_breaks = c(-0.25, 0, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.25),
                        labels = c(expression("PGS"["EUR"]), 
-                                  c(0, 0.2, 0.4, expression(atop("", "\u03B3")), 0.6, 0.8, 1), 
+                                  c(0, 0.2, 0.4, expression(atop("", gamma)), 0.6, 0.8, 1), 
                                   expr("PGS"[paste(!!this_min_ancestry)]))) +
     theme(legend.position="bottom",
           axis.title.y = element_text(angle = 0, vjust=0.5),
-          #  axis.title.x = element_blank(),
           axis.title.x = element_text(size = 9, colour = "gray20", 
                                       margin = margin(t = 5, b = 10)),
           plot.title = element_text(hjust = 0.5),
@@ -140,7 +146,7 @@ plot_maf_wrapper <- function(min_ancestry, pheno1, pheno2) {
   p3 <- plot_maf("min", min_ancestry, "EUR", pheno1)
   p4 <- plot_maf("maj", min_ancestry, "EUR", pheno1)
   ylims <- c(0, max(ggplot_build(p3)$layout$panel_scales_y[[1]]$range$range,
-                    ggplot_build(p4)$layout$panel_scales_y[[1]]$range$range))
+                    ggplot_build(p4)$layout$panel_scales_y[[1]]$range$range) )
   
   p3 <- p3 + ylim(ylims) + theme(legend.position = "none")
   p4 <- p4 + ylim(ylims) + theme(legend.position = "none")
@@ -160,12 +166,7 @@ plot_maf_wrapper <- function(min_ancestry, pheno1, pheno2) {
   
   q3 <- q3 + ylim(ylims)
   q4 <- q4 + ylim(ylims)
-  
-  # for (p in c("p1", "p2", "p3", "p4", "q1", "q2", "q3", "q4")) {
-  #   gt = ggplot_gtable(ggplot_build(get(p)))
-  #   gt$widths[7] <- gt$widths[7] * 0.5
-  #   assign(p, wrap_ggplot_grob(gt))
-  # }
+
   
   p_top <- (p1 + q1) / (p2 + q2) + 
     plot_annotation(title = paste0(min_ancestry, " test set"), 
@@ -186,7 +187,8 @@ plot_maf_wrapper <- function(min_ancestry, pheno1, pheno2) {
 }
 
 for (min_ancestry in c("EAS", "CSA", "MID", "AMR", "AFR")) {
-  for (pheno_pair in list(c("height", "MCV"), c("asthma", "FGP"))) {
+  for (pheno_pair in list(c("height", "MCV"), c("asthma", "erythrocyte"))) {
     plot_maf_wrapper(min_ancestry, pheno_pair[[1]], pheno_pair[[2]])
   }
 }
+

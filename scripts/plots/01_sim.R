@@ -23,8 +23,6 @@ n_string <- expression(atop(paste0("n" [AFR], " = ", n_afr), "No. EUR = 18000"))
 label_ntrain <- sapply(n_train_values - 18000, 
                        function(x) bquote(atop(n [AFR] == .(x), n [EUR] == 18000)))
 
-#names(n_string) <- n_afr + n_eur
-
 ### Inter-ancestry correlation ###
 
 
@@ -80,17 +78,14 @@ p1 <- afr_df %>%
     )
   ) +
   geom_hline(yintercept = 0, size = 0.2) +
-  # geom_segment(aes(y = 0, yend = 0, x = 0, xend = 1.5), size = 0.2) +
   facet_wrap("n_train_label",
              nrow = 1,
              labeller = labeller(pop = pop_string, n_train_label = label_parsed)
   ) +
   scale_x_continuous(minor_breaks = seq(0, 1.5, 0.1), breaks = seq(0, 1.5, 0.2)) +
-  #   scale_color_grey(name = "\u03c1", start = 0.8, end = 0.2) +
   scale_linetype_manual(name = "Test set", values = c(1,2,3)) +
   xlab(expression(gamma)) +
   ylab("Predictive gap") +
-  #ylab(expression(r^2)) +
   theme(
     legend.position = "bottom",
     axis.title.y = element_text(vjust = 0.5),
@@ -163,17 +158,14 @@ p2 <- afr_df %>%
     )
   ) +
   geom_hline(yintercept = 0, size = 0.2) +
-  # geom_segment(aes(y = 0, yend = 0, x = 0, xend = 1.5), size = 0.2) +
   facet_wrap("n_train_label",
              nrow = 1,
              labeller = labeller(pop = pop_string, n_train_label = label_parsed)
   ) +
   scale_x_continuous(minor_breaks = seq(0, 1.5, 0.1), breaks = seq(0, 1.5, 0.2)) +
-  #   scale_color_grey(name = "\u03c1", start = 0.8, end = 0.2) +
   scale_linetype_manual(name = "Test set", values = c(1,2,3)) +
   xlab(expression(gamma)) +
   ylab("Predictive gap") +
-  #ylab(expression(r^2)) +
   theme(
     legend.position = "bottom",
     axis.title.y = element_text(vjust = 0.5),
@@ -245,17 +237,14 @@ p3 <- afr_df %>%
     )
   ) +
   geom_hline(yintercept = 0, size = 0.2) +
-  # geom_segment(aes(y = 0, yend = 0, x = 0, xend = 1.5), size = 0.2) +
   facet_wrap("n_train_label",
              nrow = 1,
              labeller = labeller(pop = pop_string, n_train_label = label_parsed)
   ) +
   scale_x_continuous(minor_breaks = seq(0, 1.5, 0.1), breaks = seq(0, 1.5, 0.2)) +
-  #   scale_color_grey(name = "\u03c1", start = 0.8, end = 0.2) +
   scale_linetype_manual(name = "Test set", values = c(1,2,3)) +
   xlab(expression(gamma)) +
   ylab("Predictive gap") +
-  #ylab(expression(r^2)) +
   theme(
     legend.position = "bottom",
     axis.title.y = element_text(vjust = 0.5),

@@ -1,6 +1,4 @@
 # Script to calculate MAF and filter very rare SNPs
-.libPaths("/gpfs2/well/holmes/users/rxa753/pgs_transferability/renv/library/R-3.6/x86_64-conda_cos6-linux-gnu")
-print(.libPaths())
 
 library(readr)
 library(dplyr)

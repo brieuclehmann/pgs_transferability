@@ -9,8 +9,8 @@ import pandas as pd
 import numpy as np
 min_version("5.26")
 
-
-# snakemake --snakefile Snakefile_ukb.smk --profile profile/ --cluster-config cluster_config.yaml --use-conda -j1 test
+# Number of cores needed for large jobs
+NCORES_BIG = 8
 
 ##########################
 ### Set up Paramspaces ###
@@ -22,17 +22,16 @@ min_ancestries = ["AFR", "CSA", "AMR", "EAS", "MID"]
 chromosomes = [i + 1 for i in range(22)] + ["X"]
 pow_range = [0, 0.2, 0.4, 0.6, 0.8, 1.0] # gamma
 pow_ext_range = [1.2, 1.4]
-pow_ext_range = []
 
 # Phenotype UKB codes
-#pheno_all = ["A50", "A30040", "A30070", "NC1111"]
-pheno_all = ["A30070"]
+pheno_all = ["A50", "A30040", "A30070", "NC1111"]
 pheno_afr = [
     "A21001", "A30100", "A30090", "A30300", "A30130",
     "N81", "A30210", "A30120", "NC1226", "I48", "K57"
     ]
 
-# For setting up file names
+# For setting up file names - these help determine which analyses should be run, i.e. which
+# range of gamma (pow) for which phenotypes
 pow_prop_multi = [(0.1, fold + 1, pow) for pow in pow_range for fold in range(n_fold)]
 pow_prop_multi_ext = [(0.1, fold + 1, pow) for pow in pow_ext_range for fold in range(n_fold)]
 pow_prop_min = [(prop, fold + 1, 0) for fold in range(n_fold) for prop in [1]]
@@ -73,7 +72,6 @@ pow_prop_ext_df = pd.DataFrame(pow_prop_ext, columns = ['prop_min', 'fold', 'pow
 chrom_df = pd.DataFrame({"chrom":chromosomes})
 ancestry_df = pd.DataFrame({"min_ancestry":min_ancestries})
 variant_df = pd.DataFrame({"v":["tagged", "imputed"]})
-#variant_df = pd.DataFrame({"v":["imputed"]})
 pheno_df = pd.DataFrame({"pheno":pheno_all})
 
 
@@ -108,8 +106,7 @@ all_df = all_df.loc[ # Remove due to convergence issues for NC1111 (asthma)
     )
 ]
 
-#full_df = pd.concat([afr_df, dual_df, all_df])
-full_df = all_df
+full_df = pd.concat([afr_df, dual_df, all_df])
 full_df = full_df.merge(chrom_df, how = 'cross')
 
 full_pred_df = full_df.copy()
@@ -220,7 +217,7 @@ rule fit_lasso:
     conda: "envs/snpnet.yml"
     wildcard_constraints: chrom="\w{1,2}"
     params:
-        ncores = lambda wildcards: 10 if wildcards["prop_min"] in ['0.0', '-1.0'] else 2
+        ncores = lambda wildcards: NCORES_BIG if wildcards["prop_min"] in ['0.0', '-1.0'] else 1
     script: "scripts/ukb/05a_fit_lasso.R"
 
 
@@ -255,8 +252,8 @@ rule predict_traits:
 def eval_input(wildcards): # Only predict for EUR-only when min_ancestry == "AFR"
     if wildcards.min_ancestry == "AFR":
         pow_prop = pow_prop_all_txt
-        #if wildcards.pheno in pheno_all:
-            #pow_prop = pow_prop + pow_prop_dual_txt + pow_prop_ext_txt
+        if wildcards.pheno in pheno_all:
+            pow_prop = pow_prop + pow_prop_dual_txt + pow_prop_ext_txt
     else:
         pow_prop = pow_prop_sub_txt
         if wildcards.pheno in pheno_all:
@@ -288,12 +285,8 @@ rule var_decomposition:
 
 rule ukb_wrapper:
     input:
-        #expand("output/ukb/{params}/decomp.tsv", params=ps_pred.instance_patterns)
+        expand("output/ukb/{params}/decomp.tsv", params=ps_pred.instance_patterns)
         expand("output/ukb/{params}/scores.tsv", params=ps_score.instance_patterns)
-
-rule time_wrapper:
-    input:
-        expand("output/ukb/{params}/times.tsv", params=ps_score.instance_patterns)
 
 ##########################
 ## Sample size analysis ##

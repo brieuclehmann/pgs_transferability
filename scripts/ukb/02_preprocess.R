@@ -1,8 +1,5 @@
 # Script to preprocess phenotypes
 
-.libPaths("/gpfs2/well/holmes/users/rxa753/pgs_transferability/renv/library/R-3.6/x86_64-conda_cos6-linux-gnu")
-print(.libPaths())
-
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -25,8 +22,8 @@ ukb_df <- read_tsv("data/all_ukb_vars.tsv")
 ### Blood and body traits ###
 
 phys_df <- ukb_df %>%
-  select(eid, paste0(traits, "-0.0")) #%>%
-  #rename_with(function(x) paste0("A", gsub("-0.0", "", x)), .cols = -1)
+  select(eid, paste0(traits, "-0.0"))
+
 names(phys_df)[-1] <- paste0("A", gsub("-0.0", "", names(phys_df[-1])))
 ### DVT and no pain ###
 dvt_id <- "6152"
@@ -52,8 +49,8 @@ full_noncancer_df <- ukb_df %>%
   full_join(tibble(value = as.double(noncancer_id)), by = character()) %>%
   left_join(noncancer_df, by = c("eid", "value")) %>%
   mutate(disease = tidyr::replace_na(disease, FALSE)) %>%
-  tidyr::pivot_wider(names_from = value, values_from = disease) #%>%
-  #rename_with(function(x) paste0("NC", x), .cols = -eid)
+  tidyr::pivot_wider(names_from = value, values_from = disease) 
+
 names(full_noncancer_df)[-1] <- paste0("NC", names(full_noncancer_df[-1]))
 ### ICD10 codes ###
 

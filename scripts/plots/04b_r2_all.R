@@ -38,9 +38,7 @@ full_min_maj_df <- full_score_df %>%
 plot_df <- full_score_df %>%
   filter(prop_min == 0.1) %>%
   bind_rows(full_min_maj_df) %>%
- # left_join(eur_df, by = c("pheno", "fold")) %>%
   mutate(r2 = if_else(trait %in% quant_phenos, partial_r2, pseudo_r2)) %>%
-  #  mutate(partial_r2 = partial_eur - partial_r2) %>%
   group_by(pow, prop_min, trait, `Test set` = pop, `Training set`) %>%
   summarise(mean = mean(r2), 
             max = max(r2),
@@ -53,8 +51,6 @@ p1 <- plot_df %>%
   geom_line(aes(color = `Training set`),
             position = position_dodge(width = 0*0.1)) +
   geom_point(size = 0.3, aes(color = `Training set`)) +
-  # geom_errorbar(aes(ymin = min, ymax = max, color = `Training set`),
-  #               position = position_dodge(width = 0.1)) +
   geom_ribbon(aes(ymin = min, ymax = max, fill = `Training set`), alpha = 0.2) +
   facet_grid(trait ~ `Test set`, scales = "free_y") +
   scale_x_continuous(breaks = seq(0, 1.4, 0.2), minor_breaks = seq(0, 1.4, 0.2)) +

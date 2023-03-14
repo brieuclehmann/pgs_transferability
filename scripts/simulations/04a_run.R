@@ -1,11 +1,5 @@
 # LOAD PACKAGES AND DATA ------------------------------------------------------
 
-# old_path <- .libPaths()
-# new_path <- c("/well/holmes/users/rxa753/R/3.6/skylake", old_path)
-# .libPaths(new_path)
-.libPaths("/gpfs2/well/holmes/users/rxa753/pgs_transferability/renv/library/R-3.6/x86_64-conda_cos6-linux-gnu")
-print(.libPaths())
-
 library(tibble)
 library(dplyr)
 library(tidyr)

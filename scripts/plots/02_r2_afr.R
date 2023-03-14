@@ -39,7 +39,6 @@ plot_df <- basic_df %>%
   bind_rows(min_maj_df) %>%
   left_join(eur_df, by = c("pheno", "fold")) %>%
   mutate(r2 = if_else(trait %in% quant_phenos, partial_r2, pseudo_r2)) %>%
-  #  mutate(partial_r2 = partial_eur - partial_r2) %>%
   group_by(pow, prop_min, trait, `Test set` = pop, `Training set`) %>%
   summarise(mean = mean(r2), 
             max = max(r2),
@@ -49,8 +48,6 @@ plot_df <- basic_df %>%
 p1 <- ggplot(filter(plot_df, `Test set` == "AFR"), aes(pow, mean)) + 
   geom_line(aes(color = `Training set`, linetype = `Test set`)) +
   geom_point(size = 0.3, aes(color = `Training set`)) +
-#  geom_errorbar(aes(ymin = min, ymax = max, color = `Training set`),
-#                position = position_dodge(width = 0.1)) +
   geom_ribbon(aes(ymin = min, ymax = max, fill = `Training set`), alpha = 0.2) +
   geom_line(data = filter(plot_df, `Test set` == "EUR" & prop_min == 0), 
             aes(pow, mean, linetype = `Test set`),
@@ -58,9 +55,6 @@ p1 <- ggplot(filter(plot_df, `Test set` == "AFR"), aes(pow, mean)) +
   geom_ribbon(data = filter(plot_df, `Test set` == "EUR" & prop_min == 0),
               aes(pow, mean, ymin = min, ymax = max), alpha = 0.2,
               inherit.aes = FALSE) +
- # geom_errorbar(data = filter(plot_df, pop == "EUR" & prop_min == 0),
- #               aes(pow, mean, ymin = min, ymax = max), width = 0,
- #               inherit.aes = FALSE) +
   facet_wrap(c("trait"), nrow = 3, scales = "free_y") +
   scale_x_continuous(breaks = seq(0, 1, 0.2), minor_breaks = seq(0, 1, 0.2)) +
   scale_colour_discrete(name = "Polygenic score",

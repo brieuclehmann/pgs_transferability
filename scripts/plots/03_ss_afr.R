@@ -23,10 +23,6 @@ out_df <- basic_df %>%
             n_min = round(mean(n_min)),
             n_eur = round(mean(n_eur)),
             .groups = "drop")
-  # inner_join(filter(ntrain_df, min_coding == 4), by = c("pheno", "prop")) %>%
-  # mutate(nblack = ntrain * 0.1,
-  #        nwhite = (ntrain - nblack) * frac,
-  #        prop_white = nwhite / (nwhite + nblack)) %>%
 
 p1 <- out_df %>%
   filter(type == "min") %>%
@@ -34,11 +30,8 @@ p1 <- out_df %>%
   geom_line(aes(color = trait, group = trait)) +
   geom_ribbon(aes(ymin = out_low, ymax = out_up, fill = trait), alpha = 0.2) +
   geom_point(aes(color = trait, group = trait), size = 0.5) +
-#  facet_wrap(c("pop"), nrow = 2) +
   ylab(expression(r^2)) +
   xlab("Number of AFR in training set") +
-#  scale_color_viridis_d(option = "A") +
-#  scale_fill_viridis_d(option = "A") +
   theme(legend.position = "bottom") +
   ggtitle("(a)")
   
@@ -49,7 +42,6 @@ p2 <- out_df %>%
   geom_line(aes(color = trait, group = trait)) +
   geom_ribbon(aes(ymin = out_low, ymax = out_up, fill = trait), alpha = 0.2) +
   geom_point(aes(color = trait, group = trait), size = 0.5) +
- # facet_wrap(c("pop"), nrow = 2) +
   ylab(expression(r^2)) +
   xlab("Number of EUR in training set") +
   theme(legend.position = "bottom") +

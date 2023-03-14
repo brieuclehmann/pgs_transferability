@@ -25,7 +25,6 @@ phe <- h2_df %>%
     arrange(desc(h2_observed)) %>%
     pull(phenotype)
 
-# phe <- ukb_ids[ukb_ids %in% gcor$p1]
 
 i <- 1
 while (i <= length(phe)) {
