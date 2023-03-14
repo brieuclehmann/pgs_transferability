@@ -69,5 +69,4 @@ pred_df <- out_df %>%
   summarise(pred = sum(pred))
 
 ### Save output
-#pred_file <- file.path(outdir, "pred.tsv")
 write_tsv(pred_df, pred_file)

@@ -39,11 +39,48 @@ pheno_df <- read_tsv("data/all_vars.tsv") %>%
     rename(y = all_of(pheno)) %>%
     select(eid, y, all_of(covars)) %>%
     mutate(ID = paste0(eid, "_", eid)) %>%
-    filter(!is.na(y)) %>%
-    group_by(pop) %>%
-        mutate(
-            fold = sample(cut(seq_len(n()), breaks = nfolds, labels = FALSE))
+    filter(!is.na(y)) 
+
+fold_df <- pheno_df %>%
+    select(eid, ID, pop) %>%
+    mutate(fold = NA_integer_)
+
+for (this_f in seq(nfolds)) {
+    eur_kfile <- paste0(
+        "data/train_ids/pheno~", pheno,
+        "/min_ancestry~", min_ancestry,
+        "/prop_min~0.0/fold~", this_f, ".txt"
+    )
+    maj_train_df <- read_delim(eur_kfile, delim = " ", col_names = c("eid", "fid"))
+    fold_df <- fold_df %>%
+        mutate(fold = if_else(!(eid %in% maj_train_df$eid) & pop == "EUR", this_f, fold))
+        
+
+    if (pheno %in% c("A50", "A30040", "A30070", "NC1111")) {
+        min_ancestries <- c("AFR", "CSA", "EAS", "AMR", "MID")
+    } else {
+        min_ancestries <- min_ancestry
+    }
+
+    for (this_ancestry in min_ancestries) {
+        min_kfile <- paste0(
+            "data/train_ids/pheno~", pheno,
+            "/min_ancestry~", this_ancestry,
+            "/prop_min~1.0/fold~", this_f, ".txt"
         )
+        min_train_df <- read_delim(min_kfile, delim = " ", col_names = c("eid", "fid"))
+        fold_df <- fold_df %>%
+            mutate(fold = if_else(!(eid %in% min_train_df$eid) & pop == this_ancestry, this_f, fold))
+    }
+}
+
+pheno_df <- pheno_df %>%
+    inner_join(fold_df, by = c("eid", "ID", "pop"))
+
+if (pheno == "N81") {
+    pheno_df <- pheno_df %>%
+        filter(sex == 0)
+}
 
 match_dirs <- paste0(outdir, "/fold~", 1:5)
 pred_files <- do.call(c, lapply(
@@ -71,7 +108,7 @@ if (pheno %in% c("NC1226", "NC1111", "I48", "K57", "N81")) {
 }
 
 out_df <- tibble(pop = character())
-boot_df <- tibble(pop = character())
+out_sex_df <- tibble(pop = character(), sex = double())
 for (pred_file in pred_files) {
     type <- gsub(".*type~(.*?)/.*", "\\1", pred_file)
     f <- gsub(".*fold~(.*?)/.*", "\\1", pred_file)
@@ -109,10 +146,48 @@ for (pred_file in pred_files) {
             ) %>%
             mutate(type = type, frac = frac, fold = f) %>%
             bind_rows(out_df)
+
+out_sex_df <- pred_df %>%
+            group_by(pop, sex) %>%
+            mutate(
+                resid_covar = residuals(lm(y ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+                fit_covar = fitted.values(lm(y ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+                resid_pgs = residuals(lm(pred ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10))),
+                resid_full = residuals(lm(y ~ age + pred + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10)))
+            ) %>%
+            summarise(
+                r2 = compute_r2(y, pred),
+                covar_r2 = 1 - sum(resid_covar^2) / sum((y - mean(y))^2),
+                covar = summary(glm(y ~ age + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), family = fam))$deviance,
+                full_r2 = 1 - sum(resid_full^2) / sum((y - mean(y))^2),
+                full = summary(glm(y ~ age + pred + sex *
+                    (PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10), family = fam))$deviance,
+                inc_r2 = full_r2 - covar_r2,
+                partial_r2 = 1 - (sum(resid_full^2) / sum(resid_covar^2)),
+                pseudo_r2 = 1 - exp((full - covar) / n()),
+                partial_cor = cor(resid_covar, resid_pgs),
+                bias = mean(pred) - mean(y),
+                VE = 1 - (mean((resid_pgs - resid_covar)^2) / var(resid_covar)),
+                cor = cor(pred, y),
+                implied_var = var(pred),
+                implied_var_cov = var(fit_covar)
+            ) %>%
+            mutate(type = type, frac = frac, fold = f) %>%
+            bind_rows(out_sex_df)
+
    
 }
 
 out_df$pheno <- pheno
 out_df$min_ancestry <- min_ancestry
-#scores_file <- file.path(outdir, "scores.tsv")
 write_tsv(out_df, scores_file)
+
+out_sex_df$pheno <- pheno
+out_sex_df$min_ancestry <- min_ancestry
+scores_sex_file <- paste0(tools::file_path_sans_ext(scores_file), "_sex.tsv")
+write_tsv(out_sex_df, scores_sex_file)

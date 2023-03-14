@@ -93,9 +93,6 @@ phe %>%
   ) %>%
   data.table::fwrite(new_pfile, sep = "\t")
 
-if (length(unique(phe$Sex)) == 1)
-  covars <- c("Age", paste0("PC", 1:10))
-
 rm(phe)
 gc()
 
@@ -122,7 +119,7 @@ if (!file.exists(outfile)) {
   )
   diff_time <- proc.time() - start_time
   mod$time <- diff_time
-  
+
   saveRDS(mod, outfile)
   snpnet:::cleanUpIntermediateFiles(mod$configs)
 }

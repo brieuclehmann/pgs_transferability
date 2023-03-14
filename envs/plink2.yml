@@ -1,0 +1,16 @@
+name: plink2
+channels:
+  - bioconda
+  - defaults
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - blas=1.0=openblas
+  - libgcc-ng=9.1.0=hdf63c60_0
+  - libgfortran-ng=7.3.0=hdf63c60_0
+  - libopenblas=0.3.10=h5a2b251_0
+  - libstdcxx-ng=9.1.0=hdf63c60_0
+  - nomkl=3.0=0
+  - openblas=0.3.10=0
+  - openblas-devel=0.3.10=0
+  - plink2=2.00a2.3=hf22980b_0
+prefix: /well/holmes/users/rxa753/conda/envs/plink2

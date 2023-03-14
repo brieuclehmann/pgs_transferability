@@ -44,7 +44,6 @@ configs <- list(results.dir = results.dir,
                 nCores = ncores,
                 mem = 12e3 * ncores,
                 use.glmnetPlus = glmnetPlus_flag,
-                #glmnet.thresh = 1e-6,
                 verbose = TRUE,
                 save = TRUE)
 
@@ -91,6 +90,7 @@ if (!file.exists(outfile)) {
     configs$prev_iter <- max(prev_iters)
   }
 
+  start_time <- proc.time()
   system.time(
     mod <- snpnet(gfile,
                   new_pfile,
@@ -99,6 +99,9 @@ if (!file.exists(outfile)) {
                   split.col = "split",
                   configs = configs)
   )
+  diff_time <- proc.time() - start_time
+  mod$time <- diff_time
+  
   saveRDS(mod, outfile)
   snpnet:::cleanUpIntermediateFiles(mod$configs)
 }

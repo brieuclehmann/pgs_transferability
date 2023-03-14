@@ -19,13 +19,6 @@ this_frac <- as.double(snakemake@wildcards[["frac"]])
 min_ancestry <- as.character(snakemake@wildcards[["min_ancestry"]])
 f <- as.integer(snakemake@wildcards[["fold"]])
 
-# frac_type <- ifelse(
-#     frac_type == "frac_maj",
-#     paste0("frac_", maj_ancestry), 
-#     paste0("frac_", min_ancestry)
-# )
-print(min_ancestry)
-
 covars <- c(
     "pop", "age", "sex", "age_sex", "age2", "age2_sex",
     paste0("PC", 1:10), paste0("PC", 1:10, "_sex")

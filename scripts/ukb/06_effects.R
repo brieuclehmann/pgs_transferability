@@ -84,5 +84,4 @@ beta_df <- beta_df %>%
   select(varname, chrom, beta, maf_min, maf_maj)
 
 ### Save output
-#beta_file <- file.path(outdir, "beta.tsv")
 write_tsv(beta_df, beta_file)

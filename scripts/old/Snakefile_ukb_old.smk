@@ -22,11 +22,9 @@ min_ancestries = ["AFR", "CSA", "AMR", "EAS", "MID"]
 chromosomes = [i + 1 for i in range(22)] + ["X"]
 pow_range = [0, 0.2, 0.4, 0.6, 0.8, 1.0] # gamma
 pow_ext_range = [1.2, 1.4]
-pow_ext_range = []
 
 # Phenotype UKB codes
-#pheno_all = ["A50", "A30040", "A30070", "NC1111"]
-pheno_all = ["A30070"]
+pheno_all = ["A50", "A30040", "A30070", "NC1111"]
 pheno_afr = [
     "A21001", "A30100", "A30090", "A30300", "A30130",
     "N81", "A30210", "A30120", "NC1226", "I48", "K57"
@@ -73,7 +71,7 @@ pow_prop_ext_df = pd.DataFrame(pow_prop_ext, columns = ['prop_min', 'fold', 'pow
 chrom_df = pd.DataFrame({"chrom":chromosomes})
 ancestry_df = pd.DataFrame({"min_ancestry":min_ancestries})
 variant_df = pd.DataFrame({"v":["tagged", "imputed"]})
-#variant_df = pd.DataFrame({"v":["imputed"]})
+variant_df = pd.DataFrame({"v":["imputed"]})
 pheno_df = pd.DataFrame({"pheno":pheno_all})
 
 
@@ -108,8 +106,7 @@ all_df = all_df.loc[ # Remove due to convergence issues for NC1111 (asthma)
     )
 ]
 
-#full_df = pd.concat([afr_df, dual_df, all_df])
-full_df = all_df
+full_df = pd.concat([afr_df, dual_df, all_df])
 full_df = full_df.merge(chrom_df, how = 'cross')
 
 full_pred_df = full_df.copy()
@@ -251,12 +248,47 @@ rule predict_traits:
     conda: "envs/snpnet.yml"
     script: "scripts/ukb/07a_predict.R"
 
+rule get_times:
+    input:
+        expand(
+            "output/ukb/{pattern}/chrom~{chroms}.RDS", 
+            chroms=chromosomes, 
+            pattern = ps_pred.wildcard_pattern
+        )
+    output: f"output/ukb/{ps_pred.wildcard_pattern}/runtimes.tsv"
+    conda: "envs/snpnet.yml"
+    wildcard_constraints: chrom="\w{1,2}"
+    script: "scripts/ukb/extract_time.R"
+
+def eval_input_time(wildcards): # Only predict for EUR-only when min_ancestry == "AFR"
+    if wildcards.min_ancestry == "AFR":
+        pow_prop = pow_prop_all_txt
+        if wildcards.pheno in pheno_all:
+            pow_prop = pow_prop + pow_prop_dual_txt + pow_prop_ext_txt
+    else:
+        pow_prop = pow_prop_sub_txt
+        if wildcards.pheno in pheno_all:
+            pow_prop = pow_prop + pow_prop_ext_txt
+        if (wildcards.pheno == "NC1111") and (wildcards.min_ancestry == "MID"):
+            pow_prop = pow_prop_sub_txt
+    return expand(
+        "output/ukb/{pattern}/{pow_prop}/runtimes.tsv", 
+        pattern = ps_score.wildcard_pattern, 
+        pow_prop = pow_prop
+    )
+
+rule combine_times:
+    input: eval_input_time #expand("output/ukb/{pattern}/{pow_prop}/pred.tsv", pattern = ps_score.wildcard_pattern, pow_prop = pow_prop_all_txt)
+    wildcard_constraints: chrom="\w{1,2}"
+    output: f"output/ukb/{ps_score.wildcard_pattern}/times.tsv"
+    conda: "envs/snpnet.yml"
+    script: "scripts/ukb/combine_times.R"
 
 def eval_input(wildcards): # Only predict for EUR-only when min_ancestry == "AFR"
     if wildcards.min_ancestry == "AFR":
         pow_prop = pow_prop_all_txt
-        #if wildcards.pheno in pheno_all:
-            #pow_prop = pow_prop + pow_prop_dual_txt + pow_prop_ext_txt
+        if wildcards.pheno in pheno_all:
+            pow_prop = pow_prop + pow_prop_dual_txt + pow_prop_ext_txt
     else:
         pow_prop = pow_prop_sub_txt
         if wildcards.pheno in pheno_all:
@@ -270,7 +302,7 @@ def eval_input(wildcards): # Only predict for EUR-only when min_ancestry == "AFR
     )
 
 rule evaluate_pgs:
-    input: eval_input
+    input: eval_input #expand("output/ukb/{pattern}/{pow_prop}/pred.tsv", pattern = ps_score.wildcard_pattern, pow_prop = pow_prop_all_txt)
     wildcard_constraints: chrom="\w{1,2}"
     output: f"output/ukb/{ps_score.wildcard_pattern}/scores.tsv"
     conda: "envs/snpnet.yml"
@@ -288,8 +320,8 @@ rule var_decomposition:
 
 rule ukb_wrapper:
     input:
-        #expand("output/ukb/{params}/decomp.tsv", params=ps_pred.instance_patterns)
-        expand("output/ukb/{params}/scores.tsv", params=ps_score.instance_patterns)
+        expand("output/ukb/{params}/decomp.tsv", params=ps_pred.instance_patterns)
+        #expand("output/ukb/{params}/scores.tsv", params=ps_score.instance_patterns)
 
 rule time_wrapper:
     input:

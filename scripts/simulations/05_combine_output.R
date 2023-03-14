@@ -42,6 +42,8 @@ extract_results <- function(n_causal, h2, beta_cor, prop_afr, pow, iter, rep) {
             .groups = "drop"
         ) %>%
         mutate(
+            h2 = h2,
+            n_causal = n_causal,
             beta_cor = beta_cor,
             prop_afr = prop_afr,
             pow = pow,
@@ -55,9 +57,9 @@ h2_df <- readr::read_csv("output/simulations/h2.csv")
 out_df <- sim_df %>%
     rowwise() %>%
     summarise(
-        out = extract_results(beta_cor, prop_afr, pow, iter, rep),
+        out = extract_results(n_causal, h2, beta_cor, prop_afr, pow, iter, rep),
         .groups = "drop") %>%
     pull(out) %>%
-    left_join(h2_df, by = c("pop", "beta_cor", "iter"))
+    left_join(h2_df, by = c("pop", "h2", "n_causal", "beta_cor", "iter"))
 
 readr::write_csv(out_df, "output/simulations/full.csv")

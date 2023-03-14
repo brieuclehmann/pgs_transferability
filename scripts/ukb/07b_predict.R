@@ -14,6 +14,7 @@ set.seed(1)
 
 pred_file <- snakemake@output[[1]]
 dir.create(dirname(pred_file), recursive = TRUE, showWarnings = FALSE)
+variants <- snakemake@wildcards[["v"]]
 pheno <- snakemake@wildcards[["pheno"]]
 min_ancestry <- snakemake@wildcards[["min_ancestry"]]
 f <- as.integer(snakemake@wildcards[["fold"]])
@@ -24,6 +25,7 @@ pfile <- "data/all_vars.tsv"
 ### Combine chromosome predictions ###
 outdir <- file.path(
     "output", "ukb",
+    paste0("v~", variants),
     paste0("pheno~", pheno),
     paste0("min_ancestry~", min_ancestry),
     paste0("fold~", f),
@@ -37,7 +39,8 @@ out_df <- foreach(chrom = chroms, .combine = rbind) %do% {
 
   gfile <- file.path(
     "data", "genotypes",
-    paste0("ancestry~", min_ancestry),
+    paste0("v~", variants),
+    paste0("min_ancestry~", min_ancestry),
     paste0("chrom~", chrom)
   )
   outfile <- file.path(outdir, paste0("chrom~", chrom, ".RDS"))
@@ -66,5 +69,4 @@ pred_df <- out_df %>%
   summarise(pred = sum(pred))
 
 ### Save output
-#pred_file <- file.path(outdir, "pred.tsv")
 write_tsv(pred_df, pred_file)

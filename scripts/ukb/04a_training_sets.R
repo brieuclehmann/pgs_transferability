@@ -27,10 +27,10 @@ pheno_df <- read_tsv("data/all_vars.tsv") %>%
     select(eid, y, all_of(covars)) %>%
     filter(!is.na(y))
 
-unique_sex <- unique(pheno_df$sex[pheno_df$y])
-if (length(unique_sex) == 1) {
+
+if (pheno == "N81") { # FGP
     pheno_df <- pheno_df %>%
-        filter(sex == unique_sex)
+        filter(sex == 0)
 }
 
 fold_df <- pheno_df %>%
